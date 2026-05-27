@@ -638,6 +638,15 @@ const resultChannel = computed(() => findChannelByID(paymentResult.value?.channe
 
 const resultChannelName = computed(() => resolveChannelName(resultChannel.value, paymentResult.value?.channel_type, paymentResult.value?.channel_name))
 
+const currentPaymentID = () => {
+  const paymentID = Number(paymentResult.value?.payment_id || paymentResult.value?.id || 0)
+  return Number.isFinite(paymentID) && paymentID > 0 ? paymentID : 0
+}
+
+const paymentProviderType = computed(() => String(paymentResult.value?.provider_type || resultChannel.value?.provider_type || '').toLowerCase())
+
+const paymentChannelType = computed(() => String(paymentResult.value?.channel_type || resultChannel.value?.channel_type || '').toLowerCase())
+
 const interactionLabel = computed(() => {
   if (!paymentResult.value?.interaction_mode) return '-'
   const mode = String(paymentResult.value.interaction_mode).toLowerCase()
@@ -1044,18 +1053,22 @@ const loadOrder = async (options?: { silent?: boolean }) => {
     if (!silent) {
       loading.value = false
     }
-    if (!silent && order.value) {
+    if (order.value) {
       if (orderCanceled.value) {
-        error.value = t('payment.orderCanceled')
+        if (!silent) {
+          error.value = t('payment.orderCanceled')
+        }
         cachedPayment.value = null
         return
       }
       if (orderExpired.value) {
-        error.value = t('payment.orderExpired')
+        if (!silent) {
+          error.value = t('payment.orderExpired')
+        }
         cachedPayment.value = null
         return
       }
-      if (!latestLoaded.value && order.value.status === 'pending_payment') {
+      if (!paymentResult.value && !latestLoaded.value && order.value.status === 'pending_payment') {
         latestLoaded.value = true
         await loadLatestPayment()
       }
@@ -1080,9 +1093,48 @@ const stopCountdown = () => {
   countdownTimer.value = null
 }
 
+const shouldCaptureCurrentPayment = () => {
+  if (!currentPaymentID()) return false
+  if (!order.value || order.value.status !== 'pending_payment') return false
+  return paymentProviderType.value === 'official' && paymentChannelType.value === 'wechat'
+}
+
+const captureCurrentPayment = async (options?: { silent?: boolean }) => {
+  if (capturing.value || !shouldCaptureCurrentPayment()) return
+  capturing.value = true
+  if (!options?.silent) {
+    error.value = ''
+  }
+  try {
+    const paymentID = currentPaymentID()
+    if (!paymentID) return
+    if (isGuest.value) {
+      if (!hasGuestAuth.value) {
+        if (!options?.silent) {
+          guestAuthError.value = t('payment.guestAuthRequired')
+        }
+        return
+      }
+      await guestOrderAPI.capturePayment(paymentID, {
+        email: guestAuth.value.email,
+        order_password: guestAuth.value.order_password,
+      })
+    } else {
+      await paymentAPI.capture(paymentID)
+    }
+  } catch (err: any) {
+    if (!options?.silent) {
+      error.value = err?.message || t('payment.captureFailed')
+    }
+  } finally {
+    capturing.value = false
+  }
+}
+
 const startPolling = () => {
   if (pollTimer.value) return
   pollTimer.value = window.setInterval(async () => {
+    await captureCurrentPayment({ silent: true })
     await debouncedLoadOrder({ silent: true })
   }, 5000)
 }
@@ -1147,6 +1199,7 @@ const loadLatestPayment = async () => {
       paymentResult.value = data
       selectedChannelId.value = data.channel_id || null
       startPolling()
+      void captureCurrentPayment({ silent: true })
       startCountdown()
       // 对 redirect 模式自动打开支付链接
       const mode = String(data.interaction_mode || '').toLowerCase()
@@ -1203,10 +1256,9 @@ const redirectToWalletRecharge = async () => {
 
 const capturePaypalIfNeeded = async () => {
   if (capturing.value) return
-  if (!paymentResult.value?.payment_id) return
-  const providerType = String(paymentResult.value?.provider_type || '').toLowerCase()
-  const channelType = String(paymentResult.value?.channel_type || '').toLowerCase()
-  if (!(providerType === 'official' && channelType === 'paypal')) return
+  const paymentID = currentPaymentID()
+  if (!paymentID) return
+  if (!(paymentProviderType.value === 'official' && paymentChannelType.value === 'paypal')) return
   const returnFlag = readRouteQueryValue('pp_return').toLowerCase()
   const token = readRouteQueryValue('token')
   const payerId = readRouteQueryValue('payer_id') || readRouteQueryValue('PayerID')
@@ -1221,12 +1273,12 @@ const capturePaypalIfNeeded = async () => {
         guestAuthError.value = t('payment.guestAuthRequired')
         return
       }
-      await guestOrderAPI.capturePayment(Number(paymentResult.value.payment_id), {
+      await guestOrderAPI.capturePayment(paymentID, {
         email: guestAuth.value.email,
         order_password: guestAuth.value.order_password,
       })
     } else {
-      await paymentAPI.capture(Number(paymentResult.value.payment_id))
+      await paymentAPI.capture(paymentID)
     }
     await debouncedLoadOrder({ silent: true })
     await router.replace({
@@ -1242,10 +1294,9 @@ const capturePaypalIfNeeded = async () => {
 
 const captureStripeIfNeeded = async () => {
   if (capturing.value) return
-  if (!paymentResult.value?.payment_id) return
-  const providerType = String(paymentResult.value?.provider_type || '').toLowerCase()
-  const channelType = String(paymentResult.value?.channel_type || '').toLowerCase()
-  if (!(providerType === 'official' && channelType === 'stripe')) return
+  const paymentID = currentPaymentID()
+  if (!paymentID) return
+  if (!(paymentProviderType.value === 'official' && paymentChannelType.value === 'stripe')) return
   const returnFlag = readRouteQueryValue('stripe_return').toLowerCase()
   const sessionID = readRouteQueryValue('session_id')
   if (returnFlag !== '1' && sessionID === '') return
@@ -1259,12 +1310,12 @@ const captureStripeIfNeeded = async () => {
         guestAuthError.value = t('payment.guestAuthRequired')
         return
       }
-      await guestOrderAPI.capturePayment(Number(paymentResult.value.payment_id), {
+      await guestOrderAPI.capturePayment(paymentID, {
         email: guestAuth.value.email,
         order_password: guestAuth.value.order_password,
       })
     } else {
-      await paymentAPI.capture(Number(paymentResult.value.payment_id))
+      await paymentAPI.capture(paymentID)
     }
     await debouncedLoadOrder({ silent: true })
     await router.replace({
@@ -1322,6 +1373,7 @@ const performPayment = async () => {
     paymentResult.value = cachedPayment.value
     openedPayWindow.value = false
     startPolling()
+    void captureCurrentPayment({ silent: true })
     startCountdown()
     window.scrollTo({ top: 0, behavior: 'smooth' })
     return
@@ -1345,6 +1397,7 @@ const performPayment = async () => {
       }
       openedPayWindow.value = false
       startPolling()
+      void captureCurrentPayment({ silent: true })
     } else {
       const payload: any = {
         order_no: orderNoResolved.value,
@@ -1375,6 +1428,7 @@ const performPayment = async () => {
       }
       openedPayWindow.value = false
       startPolling()
+      void captureCurrentPayment({ silent: true })
       await loadWallet()
     }
     window.scrollTo({ top: 0, behavior: 'smooth' })
@@ -1451,6 +1505,17 @@ const resetPayment = () => {
   openedPayWindow.value = false
   resetRedirectState()
   latestLoaded.value = false
+}
+
+const resetPaymentRouteState = () => {
+  stopPolling()
+  stopCountdown()
+  resetPayment()
+  cachedPayment.value = null
+  selectedChannelId.value = null
+  order.value = null
+  orderPaymentChannels.value = []
+  orderPaymentChannelsLoaded.value = false
 }
 
 const restoreCachedPayment = () => {
@@ -1586,6 +1651,17 @@ watch(
 )
 
 watch(
+  () => [isGuest.value, orderNoQuery.value],
+  async ([, orderNo], [, previousOrderNo]) => {
+    if (!previousOrderNo || orderNo === previousOrderNo) return
+    resetPaymentRouteState()
+    if (!orderNo) return
+    await loadOrder()
+    void loadWallet()
+  }
+)
+
+watch(
   () => [isGuest.value, orderNoResolved.value, requiresOnlineChannel.value, expectedOnlinePayCents.value, order.value?.status],
   () => {
     void debouncedLoadOrderPaymentChannels()
@@ -1594,7 +1670,7 @@ watch(
 )
 
 watch(
-  () => [paymentResult.value?.payment_id, route.fullPath, order.value?.status],
+  () => [currentPaymentID(), paymentProviderType.value, paymentChannelType.value, route.fullPath, order.value?.status],
   () => {
     void capturePaypalIfNeeded()
     void captureStripeIfNeeded()
@@ -1658,6 +1734,7 @@ const handleGuestAuthSubmit = async () => {
 }
 
 const handleRefresh = async () => {
+  await captureCurrentPayment()
   await Promise.all([
     debouncedLoadOrder(),
     loadWallet(),
