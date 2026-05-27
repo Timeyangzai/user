@@ -1041,23 +1041,26 @@ const loadOrder = async (options?: { silent?: boolean }) => {
       }
     }
   } finally {
-    if (!silent) {
-      loading.value = false
-    }
-    if (!silent && order.value) {
-      if (orderCanceled.value) {
-        error.value = t('payment.orderCanceled')
-        cachedPayment.value = null
-        return
+    try {
+      if (!silent && order.value) {
+        if (orderCanceled.value) {
+          error.value = t('payment.orderCanceled')
+          cachedPayment.value = null
+          return
+        }
+        if (orderExpired.value) {
+          error.value = t('payment.orderExpired')
+          cachedPayment.value = null
+          return
+        }
+        if (!latestLoaded.value && order.value.status === 'pending_payment') {
+          latestLoaded.value = true
+          await loadLatestPayment()
+        }
       }
-      if (orderExpired.value) {
-        error.value = t('payment.orderExpired')
-        cachedPayment.value = null
-        return
-      }
-      if (!latestLoaded.value && order.value.status === 'pending_payment') {
-        latestLoaded.value = true
-        await loadLatestPayment()
+    } finally {
+      if (!silent) {
+        loading.value = false
       }
     }
   }
