@@ -206,6 +206,15 @@
                 {{ formatDiscountPrice(previewPromotion, previewCurrency) }}
               </span>
             </div>
+            <div class="flex items-center justify-between">
+              <span>{{ t('checkout.previewWholesale') }}</span>
+              <span
+                class="font-mono"
+                :class="hasPositiveAmount(previewWholesale) ? 'text-emerald-600 dark:text-emerald-300' : 'theme-text-primary'"
+              >
+                {{ formatDiscountPrice(previewWholesale, previewCurrency) }}
+              </span>
+            </div>
             <div v-if="Number(previewMemberDiscount) > 0" class="flex items-center justify-between">
               <span>{{ t('checkout.previewMemberDiscount') }}</span>
               <span class="font-mono text-amber-600 dark:text-amber-300">-{{ formatPrice(previewMemberDiscount, previewCurrency) }}</span>
@@ -514,6 +523,7 @@ const previewCurrency = computed(() => preview.value?.currency || totalCurrency.
 const previewOriginal = computed(() => preview.value?.original_amount ?? totalAmount.value)
 const previewCoupon = computed(() => preview.value?.discount_amount ?? '0')
 const previewPromotion = computed(() => preview.value?.promotion_discount_amount ?? '0')
+const previewWholesale = computed(() => preview.value?.wholesale_discount_amount ?? '0')
 const previewMemberDiscount = computed(() => preview.value?.member_discount_amount ?? '0')
 const previewTotal = computed(() => preview.value?.total_amount ?? totalAmount.value)
 const checkoutItemCurrency = computed(() => previewCurrency.value)
@@ -1243,6 +1253,27 @@ const cartItemSubtotalCents = (item: CartItem) => {
   return amountCents * qty
 }
 
+const cartItemWholesaleSubtotalCents = (item: CartItem) => {
+  const baseCents = amountToCents(item.priceAmount)
+  const qty = parseInteger(item.quantity)
+  if (baseCents === null || qty === null || qty <= 0 || !Array.isArray(item.wholesalePrices)) {
+    return null
+  }
+  let matchedPriceCents: number | null = null
+  let matchedQuantity = 0
+  for (const tier of item.wholesalePrices) {
+    const minQuantity = Number((tier as any)?.min_quantity || 0)
+    const unitPriceCents = amountToCents((tier as any)?.unit_price)
+    if (!Number.isFinite(minQuantity) || minQuantity <= 0 || unitPriceCents === null) continue
+    if (qty >= minQuantity && minQuantity > matchedQuantity && unitPriceCents < baseCents) {
+      matchedQuantity = minQuantity
+      matchedPriceCents = unitPriceCents
+    }
+  }
+  if (matchedPriceCents === null) return null
+  return matchedPriceCents * qty
+}
+
 const checkoutItemPreview = (item: CartItem) => previewItemsByKey.value.get(cartItemKey(item))
 
 const checkoutItemOriginalCents = (item: CartItem) => {
@@ -1259,6 +1290,8 @@ const checkoutItemPayableCents = (item: CartItem) => {
     const couponDiscountCents = amountToCents(previewItem?.coupon_discount_amount) || 0
     return Math.max(0, previewPayableCents - couponDiscountCents)
   }
+  const wholesaleSubtotal = cartItemWholesaleSubtotalCents(item)
+  if (wholesaleSubtotal !== null) return wholesaleSubtotal
   return checkoutItemOriginalCents(item)
 }
 

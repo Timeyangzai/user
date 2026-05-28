@@ -110,11 +110,25 @@
                   >
                     {{ getStockStatusLabel(product) }}
                   </span>
+                  <span
+                    v-if="hasSelectedSkuWholesalePrice"
+                    class="theme-badge theme-badge-success text-[10px] px-1.5 py-px"
+                  >
+                    {{ t('products.wholesaleTag') }}
+                  </span>
                 </div>
 
                 <!-- Price -->
                 <div class="mt-auto pt-1">
-                  <template v-if="selectedSku && hasSkuPromotionPrice(selectedSku)">
+                  <template v-if="selectedSku && hasSelectedSkuWholesalePrice">
+                    <span class="text-lg md:text-xl font-bold text-emerald-600 dark:text-emerald-400">
+                      {{ formatPrice(selectedSkuWholesalePrice!, siteCurrency) }}
+                    </span>
+                    <span class="ml-1.5 text-xs theme-text-muted line-through">
+                      {{ formatPrice(selectedSku.price_amount, siteCurrency) }}
+                    </span>
+                  </template>
+                  <template v-else-if="selectedSku && hasSkuPromotionPrice(selectedSku)">
                     <span class="text-lg md:text-xl font-bold text-rose-600 dark:text-rose-400">
                       {{ formatPrice(getSkuPromotionPriceAmount(selectedSku), siteCurrency) }}
                     </span>
@@ -164,6 +178,17 @@
             </p>
 
             <!-- Promotion rules -->
+            <div v-if="hasWholesalePrices(product)" class="mb-4 rounded-lg border border-emerald-200 bg-emerald-50/50 px-3 py-2 dark:border-emerald-800/50 dark:bg-emerald-950/20">
+              <div class="mb-1 text-[11px] font-semibold text-emerald-700 dark:text-emerald-300">
+                {{ t('products.wholesaleRulesTitle') }}
+              </div>
+              <div class="flex flex-wrap gap-1">
+                <span v-for="tier in getWholesalePrices(product)" :key="tier.min_quantity" class="rounded-full border border-emerald-200 bg-white/70 px-2 py-0.5 text-[10px] text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300">
+                  {{ formatWholesaleTier(tier) }}
+                </span>
+              </div>
+            </div>
+
             <div v-if="hasPromotionRules(product)" class="mb-4 rounded-lg border border-orange-200 dark:border-orange-800/50 bg-orange-50/50 dark:bg-orange-950/20 px-3 py-2">
               <div class="flex items-center gap-1 mb-1">
                 <svg class="w-3.5 h-3.5 text-orange-500 dark:text-orange-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -355,6 +380,9 @@ const {
   getSkuPromotionPriceAmount,
   hasPromotionRules,
   getPromotionRules,
+  hasWholesalePrices,
+  getWholesalePrices,
+  resolveWholesalePriceAmount,
 } = useProductLabels()
 
 const selectedSkuId = ref(0)
@@ -399,6 +427,24 @@ const activeSkus = computed(() => {
 const selectedSku = computed(() => {
   if (selectedSkuId.value <= 0) return null
   return activeSkus.value.find((sku: any) => normalizeSkuId(sku?.id) === selectedSkuId.value) || null
+})
+
+const selectedSkuWholesalePrice = computed(() => {
+  if (!props.product || !selectedSku.value) return null
+  return resolveWholesalePriceAmount(props.product, selectedSku.value.price_amount, quantity.value)
+})
+
+const hasSelectedSkuWholesalePrice = computed(() => {
+  if (!selectedSku.value || !selectedSkuWholesalePrice.value) return false
+  const comparisonPrice = hasSkuPromotionPrice(selectedSku.value)
+    ? Number(getSkuPromotionPriceAmount(selectedSku.value))
+    : Number(selectedSku.value.price_amount || 0)
+  return Number(selectedSkuWholesalePrice.value) < comparisonPrice
+})
+
+const formatWholesaleTier = (tier: any) => t('products.wholesaleTier', {
+  count: Number(tier?.min_quantity || 0),
+  price: formatPrice(tier?.unit_price, siteCurrency.value),
 })
 
 // Stock helpers (same logic as ProductDetail)
@@ -613,6 +659,7 @@ const handleAddToCart = () => {
     slug: props.product.slug,
     title: props.product.title,
     priceAmount: String(sku?.price_amount || props.product.price_amount || '0.00'),
+    wholesalePrices: Array.isArray(props.product.wholesale_prices) ? props.product.wholesale_prices : undefined,
     image: images[0] || '',
     minPurchaseQuantity: normalizeOptionalLimitNumber(props.product.min_purchase_quantity) ?? undefined,
     maxPurchaseQuantity: normalizeOptionalLimitNumber(props.product.max_purchase_quantity) ?? undefined,
@@ -660,6 +707,7 @@ const handleBuyNow = () => {
     slug: props.product.slug,
     title: props.product.title,
     priceAmount: String(sku?.price_amount || props.product.price_amount || '0.00'),
+    wholesalePrices: Array.isArray(props.product.wholesale_prices) ? props.product.wholesale_prices : undefined,
     image: images[0] || '',
     minPurchaseQuantity: normalizeOptionalLimitNumber(props.product.min_purchase_quantity) ?? undefined,
     maxPurchaseQuantity: normalizeOptionalLimitNumber(props.product.max_purchase_quantity) ?? undefined,

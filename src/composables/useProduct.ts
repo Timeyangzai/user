@@ -111,6 +111,26 @@ export function useProductLabels() {
 
   const hasPromotionRules = (product: any) => product?.promotion_rules?.length > 0
   const getPromotionRules = (product: any): any[] => product?.promotion_rules ?? []
+  const getWholesalePrices = (product: any): any[] => Array.isArray(product?.wholesale_prices) ? product.wholesale_prices : []
+  const hasWholesalePrices = (product: any) => getWholesalePrices(product).length > 0
+
+  const resolveWholesalePriceAmount = (product: any, basePrice: any, quantity: number) => {
+    const base = parsePriceAmount(basePrice)
+    if (base === null || !Number.isFinite(quantity) || quantity <= 0) return null
+    let matched: any = null
+    for (const tier of getWholesalePrices(product)) {
+      const minQuantity = Number(tier?.min_quantity || 0)
+      const priceCents = parsePriceAmount(tier?.unit_price)
+      if (!Number.isFinite(minQuantity) || minQuantity <= 0 || priceCents === null) continue
+      if (quantity >= minQuantity && (!matched || minQuantity > Number(matched.min_quantity || 0))) {
+        matched = tier
+      }
+    }
+    if (!matched) return null
+    const tierCents = parsePriceAmount(matched.unit_price)
+    if (tierCents === null || tierCents >= base) return null
+    return centsToAmount(tierCents)
+  }
 
   return {
     getPurchaseTypeLabel,
@@ -126,5 +146,8 @@ export function useProductLabels() {
     getSkuPromotionSaveAmount,
     hasPromotionRules,
     getPromotionRules,
+    hasWholesalePrices,
+    getWholesalePrices,
+    resolveWholesalePriceAmount,
   }
 }
