@@ -195,6 +195,47 @@ export interface ResellerProfileSummaryData {
     created_at: string
 }
 
+export interface ResellerManagementProfileData {
+    id: number
+    status: string
+    apply_reason?: string
+    reject_reason?: string
+    default_markup_percent: string
+    max_markup_percent: string
+    settlement_status: string
+    reviewed_at?: string
+    created_at: string
+    updated_at: string
+}
+
+export interface ResellerDomainData {
+    id: number
+    domain: string
+    type: string
+    verification_token?: string
+    verification_status: string
+    status: string
+    is_primary: boolean
+    verified_at?: string
+    created_at: string
+    updated_at: string
+}
+
+export interface ResellerManagementSnapshotData {
+    opened: boolean
+    can_apply: boolean
+    profile?: ResellerManagementProfileData
+    domains: ResellerDomainData[]
+}
+
+export interface ResellerApplyPayload {
+    reason?: string
+}
+
+export interface ResellerCustomDomainPayload {
+    domain: string
+}
+
 export interface ResellerBalanceData {
     id: number
     currency: string

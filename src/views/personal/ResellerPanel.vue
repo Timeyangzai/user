@@ -1,5 +1,139 @@
 <template>
   <div class="space-y-6">
+    <div v-if="panelAlert" class="rounded-xl border px-4 py-3 text-sm shadow-sm" :class="pageAlertClass(panelAlert.level)">
+      {{ panelAlert.message }}
+    </div>
+
+    <div class="theme-personal-card">
+      <div class="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div>
+          <h2 class="text-xl font-bold theme-text-primary">{{ t('personalCenter.reseller.managementTitle') }}</h2>
+          <p class="mt-1 text-sm theme-text-muted">{{ t('personalCenter.reseller.managementSubtitle') }}</p>
+        </div>
+        <span v-if="!managementLoading" class="theme-badge px-3 py-1 text-xs font-semibold" :class="managementStatusClass">
+          {{ managementStatusText }}
+        </span>
+      </div>
+
+      <div v-if="managementLoading" class="space-y-3">
+        <div v-for="idx in 3" :key="`management-${idx}`" class="h-16 animate-pulse rounded-xl border theme-surface-muted"></div>
+      </div>
+
+      <template v-else>
+        <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
+          <div class="rounded-xl border theme-surface-soft p-4">
+            <div class="text-xs theme-text-muted">{{ t('personalCenter.reseller.managementStatusLabel') }}</div>
+            <div class="mt-2 text-base font-bold theme-text-primary">{{ managementStatusText }}</div>
+          </div>
+          <div class="rounded-xl border theme-surface-soft p-4">
+            <div class="text-xs theme-text-muted">{{ t('personalCenter.reseller.markupRange') }}</div>
+            <div class="mt-2 text-base font-bold theme-text-primary">{{ managementMarkupText }}</div>
+          </div>
+          <div class="rounded-xl border theme-surface-soft p-4">
+            <div class="text-xs theme-text-muted">{{ t('personalCenter.reseller.domainCount') }}</div>
+            <div class="mt-2 text-base font-bold theme-text-primary">{{ managementDomains.length }}</div>
+          </div>
+        </div>
+
+        <div v-if="!management?.opened || managementState.canApply" class="mt-5 rounded-xl border theme-surface-soft p-4">
+          <div class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+            <div>
+              <h3 class="text-base font-bold theme-text-primary">
+                {{ management?.opened ? t('personalCenter.reseller.reapplyTitle') : t('personalCenter.reseller.applyTitle') }}
+              </h3>
+              <p class="mt-1 text-sm theme-text-muted">{{ applyNoticeText }}</p>
+              <p v-if="management?.profile?.reject_reason" class="mt-2 text-sm text-red-600 dark:text-red-300">
+                {{ t('personalCenter.reseller.rejectReason', { reason: management.profile.reject_reason }) }}
+              </p>
+            </div>
+            <button
+              v-if="managementState.canApply"
+              type="button"
+              :disabled="submittingApply"
+              class="inline-flex items-center justify-center rounded-xl theme-btn-primary px-5 py-2.5 text-sm font-bold disabled:cursor-not-allowed disabled:opacity-60"
+              @click="handleApplyProfile"
+            >
+              {{ submittingApply ? t('personalCenter.reseller.applying') : t('personalCenter.reseller.applySubmit') }}
+            </button>
+          </div>
+          <textarea
+            v-if="managementState.canApply"
+            v-model.trim="applyForm.reason"
+            rows="3"
+            class="mt-4 w-full form-input-lg"
+            :disabled="submittingApply"
+            :placeholder="t('personalCenter.reseller.applyReasonPlaceholder')"
+          ></textarea>
+        </div>
+
+        <div v-if="managementState.canSubmitDomain" class="mt-5 rounded-xl border theme-surface-soft p-4">
+          <h3 class="text-base font-bold theme-text-primary">{{ t('personalCenter.reseller.customDomainTitle') }}</h3>
+          <form class="mt-4 grid grid-cols-1 gap-3 md:grid-cols-[1fr_auto]" @submit.prevent="handleSubmitDomain">
+            <input
+              v-model.trim="domainForm.domain"
+              type="text"
+              class="form-input-lg"
+              :disabled="submittingDomain"
+              :placeholder="t('personalCenter.reseller.customDomainPlaceholder')"
+            />
+            <button
+              type="submit"
+              :disabled="submittingDomain"
+              class="inline-flex items-center justify-center rounded-xl theme-btn-primary px-5 py-2.5 text-sm font-bold disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {{ submittingDomain ? t('personalCenter.reseller.submittingDomain') : t('personalCenter.reseller.submitDomain') }}
+            </button>
+          </form>
+        </div>
+
+        <div class="mt-5">
+          <div class="mb-3 flex items-center justify-between gap-3">
+            <h3 class="text-base font-bold theme-text-primary">{{ t('personalCenter.reseller.domainTitle') }}</h3>
+            <button
+              type="button"
+              class="inline-flex items-center rounded-lg border theme-btn-secondary px-3 py-1.5 text-xs font-semibold"
+              @click="loadManagementSnapshot"
+            >
+              {{ t('orders.filters.refresh') }}
+            </button>
+          </div>
+          <div v-if="managementDomains.length === 0" class="rounded-xl border border-dashed theme-surface-soft px-4 py-6 text-sm theme-text-muted">
+            {{ t('personalCenter.reseller.domainEmpty') }}
+          </div>
+          <div v-else class="grid grid-cols-1 gap-3 md:grid-cols-2">
+            <div v-for="item in managementDomains" :key="item.id" class="rounded-xl border theme-surface-soft p-4">
+              <div class="flex items-start justify-between gap-3">
+                <div class="min-w-0">
+                  <div class="break-all font-mono text-sm font-bold theme-text-primary">{{ item.domain }}</div>
+                  <div class="mt-2 flex flex-wrap gap-2 text-xs">
+                    <span class="theme-badge px-2.5 py-1 font-semibold" :class="domainStatusClass(item.status)">
+                      {{ domainStatusLabel(item.status) }}
+                    </span>
+                    <span class="theme-badge px-2.5 py-1 font-semibold" :class="domainVerificationClass(item.verification_status)">
+                      {{ domainVerificationLabel(item.verification_status) }}
+                    </span>
+                    <span class="theme-badge theme-badge-neutral px-2.5 py-1 font-semibold">
+                      {{ domainTypeLabel(item.type) }}
+                    </span>
+                  </div>
+                </div>
+                <span v-if="item.is_primary" class="theme-badge theme-badge-accent px-2.5 py-1 text-xs font-semibold">
+                  {{ t('personalCenter.reseller.primaryDomain') }}
+                </span>
+              </div>
+              <div v-if="item.verification_token" class="mt-4 rounded-lg border border-dashed px-3 py-2 text-xs theme-text-muted">
+                <div>{{ t('personalCenter.reseller.verificationToken') }}</div>
+                <div class="mt-1 break-all font-mono theme-text-primary">{{ item.verification_token }}</div>
+              </div>
+              <div class="mt-4 text-xs theme-text-muted">
+                {{ t('personalCenter.reseller.updatedAt') }} {{ formatDate(item.updated_at) }}
+              </div>
+            </div>
+          </div>
+        </div>
+      </template>
+    </div>
+
     <div class="theme-personal-card">
       <div class="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
@@ -9,10 +143,6 @@
         <span class="theme-badge theme-badge-accent px-3 py-1 text-xs font-semibold">
           {{ t('personalCenter.tabs.reseller') }}
         </span>
-      </div>
-
-      <div v-if="panelAlert" class="mb-5 rounded-xl border px-4 py-3 text-sm shadow-sm" :class="pageAlertClass(panelAlert.level)">
-        {{ panelAlert.message }}
       </div>
 
       <div v-if="loading" class="space-y-3">
@@ -295,17 +425,36 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { resellerAPI, type ResellerDashboardData, type ResellerLedgerData, type ResellerWithdrawData } from '../../api'
+import {
+  resellerAPI,
+  type ResellerDashboardData,
+  type ResellerDomainData,
+  type ResellerLedgerData,
+  type ResellerManagementSnapshotData,
+  type ResellerWithdrawData,
+} from '../../api'
 import {
   RESELLER_BALANCE_STATUS_DISABLED,
   RESELLER_BALANCE_STATUS_FROZEN_REVIEW,
   RESELLER_BALANCE_STATUS_NEGATIVE_BALANCE,
   RESELLER_BALANCE_STATUS_NORMAL,
+  RESELLER_DOMAIN_STATUS_ACTIVE,
+  RESELLER_DOMAIN_STATUS_DISABLED,
+  RESELLER_DOMAIN_STATUS_PENDING_REVIEW,
+  RESELLER_DOMAIN_TYPE_CUSTOM,
+  RESELLER_DOMAIN_TYPE_SUBDOMAIN,
+  RESELLER_DOMAIN_VERIFICATION_FAILED,
+  RESELLER_DOMAIN_VERIFICATION_PENDING,
+  RESELLER_DOMAIN_VERIFICATION_VERIFIED,
   RESELLER_LEDGER_STATUS_AVAILABLE,
   RESELLER_LEDGER_STATUS_CANCELED,
   RESELLER_LEDGER_STATUS_LOCKED,
   RESELLER_LEDGER_STATUS_PENDING_CONFIRM,
   RESELLER_LEDGER_STATUS_WITHDRAWN,
+  RESELLER_PROFILE_STATUS_ACTIVE,
+  RESELLER_PROFILE_STATUS_DISABLED,
+  RESELLER_PROFILE_STATUS_PENDING_REVIEW,
+  RESELLER_PROFILE_STATUS_REJECTED,
   RESELLER_WITHDRAW_STATUS_PAID,
   RESELLER_WITHDRAW_STATUS_PENDING,
   RESELLER_WITHDRAW_STATUS_REJECTED,
@@ -317,13 +466,22 @@ import {
   getResellerWithdrawDisabledReasonKey,
   isResellerWithdrawEnabled,
 } from '../../utils/resellerFinance'
+import {
+  getResellerDomainStatusKey,
+  getResellerManagementState,
+  isResellerProfileActive,
+} from '../../utils/resellerManagement'
 
 const { t } = useI18n()
 
 const loading = ref(true)
+const managementLoading = ref(true)
 const ledgerLoading = ref(false)
 const withdrawsLoading = ref(false)
+const submittingApply = ref(false)
+const submittingDomain = ref(false)
 const submittingWithdraw = ref(false)
+const management = ref<ResellerManagementSnapshotData | null>(null)
 const dashboard = ref<ResellerDashboardData | null>(null)
 const panelAlert = ref<PageAlert | null>(null)
 
@@ -350,6 +508,18 @@ const withdrawForm = reactive({
   channel: '',
   account: '',
 })
+
+const applyForm = reactive({
+  reason: '',
+})
+
+const domainForm = reactive({
+  domain: '',
+})
+
+const managementDomains = computed<ResellerDomainData[]>(() => management.value?.domains || [])
+
+const managementState = computed(() => getResellerManagementState(management.value))
 
 const balances = computed(() => dashboard.value?.balances || [])
 
@@ -380,6 +550,33 @@ const profileStatusText = computed(() => {
 
 const profileStatusClass = computed(() => profileStatusView.value.badgeClass)
 
+const managementStatusText = computed(() => t(`personalCenter.reseller.managementStatus.${managementState.value.statusKey}`))
+
+const managementStatusClass = computed(() => {
+  const status = management.value?.profile?.status
+  if (status === RESELLER_PROFILE_STATUS_ACTIVE) return 'theme-badge-success'
+  if (status === RESELLER_PROFILE_STATUS_PENDING_REVIEW) return 'theme-badge-warning'
+  if (status === RESELLER_PROFILE_STATUS_REJECTED) return 'theme-badge-neutral'
+  if (status === RESELLER_PROFILE_STATUS_DISABLED) return 'theme-badge-neutral'
+  return managementState.value.canApply ? 'theme-badge-info' : 'theme-badge-neutral'
+})
+
+const managementMarkupText = computed(() => {
+  const profile = management.value?.profile
+  if (!profile || !isResellerProfileActive(profile)) return '-'
+  return `${profile.default_markup_percent}% / ${profile.max_markup_percent}%`
+})
+
+const applyNoticeText = computed(() => {
+  if (management.value?.opened && management.value.profile?.status === RESELLER_PROFILE_STATUS_REJECTED) {
+    return t('personalCenter.reseller.reapplyNotice')
+  }
+  if (managementState.value.canApply) {
+    return t('personalCenter.reseller.applyNotice')
+  }
+  return t('personalCenter.reseller.applyUnavailable')
+})
+
 const ensureWithdrawCurrency = () => {
   if (withdrawForm.currency || balanceCurrencies.value.length === 0) return
   const firstCurrency = balanceCurrencies.value[0]
@@ -393,6 +590,11 @@ const formatDate = (raw?: string) => {
   const date = new Date(raw)
   if (Number.isNaN(date.getTime())) return raw
   return date.toLocaleString()
+}
+
+const loadManagementSnapshot = async () => {
+  const response = await resellerAPI.managementProfile()
+  management.value = response.data.data || null
 }
 
 const loadDashboard = async () => {
@@ -440,11 +642,13 @@ const reloadOpenedData = async () => {
 
 const initialize = async () => {
   loading.value = true
+  managementLoading.value = true
   panelAlert.value = null
   try {
-    await loadDashboard()
+    await Promise.all([loadManagementSnapshot(), loadDashboard()])
     await reloadOpenedData()
   } catch (err: any) {
+    management.value = null
     dashboard.value = null
     panelAlert.value = {
       level: 'error',
@@ -452,6 +656,77 @@ const initialize = async () => {
     }
   } finally {
     loading.value = false
+    managementLoading.value = false
+  }
+}
+
+const handleApplyProfile = async () => {
+  if (!managementState.value.canApply) {
+    panelAlert.value = {
+      level: 'warning',
+      message: t('personalCenter.reseller.errors.applyUnavailable'),
+    }
+    return
+  }
+
+  submittingApply.value = true
+  panelAlert.value = null
+  try {
+    await resellerAPI.apply({
+      reason: applyForm.reason.trim(),
+    })
+    applyForm.reason = ''
+    panelAlert.value = {
+      level: 'success',
+      message: t('personalCenter.reseller.applySuccess'),
+    }
+    await Promise.all([loadManagementSnapshot(), loadDashboard()])
+    await reloadOpenedData()
+  } catch (err: any) {
+    panelAlert.value = {
+      level: 'error',
+      message: err?.message || t('personalCenter.reseller.errors.applyFailed'),
+    }
+  } finally {
+    submittingApply.value = false
+  }
+}
+
+const handleSubmitDomain = async () => {
+  panelAlert.value = null
+  if (!managementState.value.canSubmitDomain) {
+    panelAlert.value = {
+      level: 'warning',
+      message: t('personalCenter.reseller.errors.domainProfileInactive'),
+    }
+    return
+  }
+  if (!domainForm.domain.trim()) {
+    panelAlert.value = {
+      level: 'warning',
+      message: t('personalCenter.reseller.errors.domainRequired'),
+    }
+    return
+  }
+
+  submittingDomain.value = true
+  try {
+    await resellerAPI.submitDomain({
+      domain: domainForm.domain.trim(),
+    })
+    domainForm.domain = ''
+    panelAlert.value = {
+      level: 'success',
+      message: t('personalCenter.reseller.domainSubmitSuccess'),
+    }
+    await loadManagementSnapshot()
+  } catch (err: any) {
+    panelAlert.value = {
+      level: 'error',
+      message: err?.message || t('personalCenter.reseller.errors.domainSubmitFailed'),
+    }
+  } finally {
+    submittingDomain.value = false
   }
 }
 
@@ -532,6 +807,37 @@ const balanceStatusClass = (status?: string) => {
   if (status === RESELLER_BALANCE_STATUS_FROZEN_REVIEW) return 'theme-badge-warning'
   if (status === RESELLER_BALANCE_STATUS_DISABLED) return 'theme-badge-neutral'
   return 'theme-badge-neutral'
+}
+
+const domainTypeLabel = (type?: string) => {
+  if (type === RESELLER_DOMAIN_TYPE_SUBDOMAIN) return t('personalCenter.reseller.domainType.subdomain')
+  if (type === RESELLER_DOMAIN_TYPE_CUSTOM) return t('personalCenter.reseller.domainType.custom')
+  return type || '-'
+}
+
+const domainStatusLabel = (status?: string) => {
+  const key = getResellerDomainStatusKey(status)
+  return t(`personalCenter.reseller.domainStatus.${key}`)
+}
+
+const domainStatusClass = (status?: string) => {
+  if (status === RESELLER_DOMAIN_STATUS_ACTIVE) return 'theme-badge-success'
+  if (status === RESELLER_DOMAIN_STATUS_PENDING_REVIEW) return 'theme-badge-warning'
+  if (status === RESELLER_DOMAIN_STATUS_DISABLED) return 'theme-badge-neutral'
+  return 'theme-badge-neutral'
+}
+
+const domainVerificationLabel = (status?: string) => {
+  if (status === RESELLER_DOMAIN_VERIFICATION_PENDING) return t('personalCenter.reseller.domainVerification.pending')
+  if (status === RESELLER_DOMAIN_VERIFICATION_VERIFIED) return t('personalCenter.reseller.domainVerification.verified')
+  if (status === RESELLER_DOMAIN_VERIFICATION_FAILED) return t('personalCenter.reseller.domainVerification.failed')
+  return status || '-'
+}
+
+const domainVerificationClass = (status?: string) => {
+  if (status === RESELLER_DOMAIN_VERIFICATION_VERIFIED) return 'theme-badge-success'
+  if (status === RESELLER_DOMAIN_VERIFICATION_FAILED) return 'theme-badge-neutral'
+  return 'theme-badge-warning'
 }
 
 const ledgerTypeLabel = (type?: string) => {
