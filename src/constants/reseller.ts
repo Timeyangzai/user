@@ -1,6 +1,13 @@
 export const RESELLER_LEDGER_TYPE_ORDER_PROFIT = 'order_profit'
 export const RESELLER_LEDGER_TYPE_REFUND_DEDUCT = 'refund_deduct'
+export const RESELLER_LEDGER_TYPE_MANUAL_ADJUST = 'manual_adjust'
 export const RESELLER_LEDGER_TYPE_WITHDRAW_LOCK = 'withdraw_lock'
+export const RESELLER_LEDGER_TYPE_WITHDRAW_PAID = 'withdraw_paid'
+
+export const RESELLER_PROFILE_STATUS_ACTIVE = 'active'
+
+export const RESELLER_SETTLEMENT_STATUS_NORMAL = 'normal'
+export const RESELLER_SETTLEMENT_STATUS_FROZEN = 'frozen'
 
 export const RESELLER_LEDGER_STATUS_PENDING_CONFIRM = 'pending_confirm'
 export const RESELLER_LEDGER_STATUS_AVAILABLE = 'available'

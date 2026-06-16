@@ -573,8 +573,21 @@ const messages = {
                 withdrawEmpty: '暂无提现记录',
                 settlementStatusMap: {
                     normal: '正常',
+                    frozen: '冻结复核',
                     frozenReview: '冻结复核',
                     disabled: '已停用',
+                },
+                profileStatusMap: {
+                    pendingReview: '待审核',
+                    active: '正常',
+                    rejected: '已拒绝',
+                    disabled: '已停用',
+                    unknown: '未知状态',
+                },
+                withdrawDisabledReason: {
+                    profileInactive: '当前分销商身份未启用，暂不能申请提现。',
+                    settlementUnavailable: '当前结算状态不可提现，请联系客服处理。',
+                    default: '当前暂不能申请提现。',
                 },
                 balanceStatus: {
                     normal: '正常',
@@ -586,6 +599,8 @@ const messages = {
                     orderProfit: '订单收益',
                     refundDeduct: '退款扣回',
                     withdrawLock: '提现锁定',
+                    manualAdjust: '人工调整',
+                    withdrawPaid: '提现打款',
                 },
                 ledgerStatus: {
                     pendingConfirm: '待确认',
@@ -1814,8 +1829,21 @@ const messages = {
                 withdrawEmpty: '暫無提現記錄',
                 settlementStatusMap: {
                     normal: '正常',
+                    frozen: '凍結複核',
                     frozenReview: '凍結複核',
                     disabled: '已停用',
+                },
+                profileStatusMap: {
+                    pendingReview: '待審核',
+                    active: '正常',
+                    rejected: '已拒絕',
+                    disabled: '已停用',
+                    unknown: '未知狀態',
+                },
+                withdrawDisabledReason: {
+                    profileInactive: '目前分銷商身份未啟用，暫不能申請提現。',
+                    settlementUnavailable: '目前結算狀態不可提現，請聯絡客服處理。',
+                    default: '目前暫不能申請提現。',
                 },
                 balanceStatus: {
                     normal: '正常',
@@ -1827,6 +1855,8 @@ const messages = {
                     orderProfit: '訂單收益',
                     refundDeduct: '退款扣回',
                     withdrawLock: '提現鎖定',
+                    manualAdjust: '人工調整',
+                    withdrawPaid: '提現打款',
                 },
                 ledgerStatus: {
                     pendingConfirm: '待確認',
@@ -3009,8 +3039,21 @@ const messages = {
                 withdrawEmpty: 'No withdraw records',
                 settlementStatusMap: {
                     normal: 'Normal',
+                    frozen: 'Frozen Review',
                     frozenReview: 'Frozen Review',
                     disabled: 'Disabled',
+                },
+                profileStatusMap: {
+                    pendingReview: 'Pending Review',
+                    active: 'Active',
+                    rejected: 'Rejected',
+                    disabled: 'Disabled',
+                    unknown: 'Unknown Status',
+                },
+                withdrawDisabledReason: {
+                    profileInactive: 'Your reseller profile is not active, so withdraw requests are temporarily unavailable.',
+                    settlementUnavailable: 'Withdraw requests are unavailable for the current settlement status. Please contact support.',
+                    default: 'Withdraw requests are temporarily unavailable.',
                 },
                 balanceStatus: {
                     normal: 'Normal',
@@ -3022,6 +3065,8 @@ const messages = {
                     orderProfit: 'Order Profit',
                     refundDeduct: 'Refund Deduct',
                     withdrawLock: 'Withdraw Lock',
+                    manualAdjust: 'Manual Adjustment',
+                    withdrawPaid: 'Withdraw Paid',
                 },
                 ledgerStatus: {
                     pendingConfirm: 'Pending Confirm',

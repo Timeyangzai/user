@@ -88,6 +88,12 @@
     <div v-if="dashboard?.opened" class="theme-personal-card">
       <h3 class="text-lg font-bold theme-text-primary">{{ t('personalCenter.reseller.withdrawTitle') }}</h3>
       <p class="mt-1 text-sm theme-text-muted">{{ t('personalCenter.reseller.withdrawSubtitle') }}</p>
+      <div
+        v-if="!withdrawEnabled"
+        class="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700 dark:border-amber-400/30 dark:bg-amber-400/10 dark:text-amber-200"
+      >
+        {{ withdrawDisabledReasonText }}
+      </div>
       <form class="mt-5 grid grid-cols-1 gap-4 md:grid-cols-5" @submit.prevent="handleApplyWithdraw">
         <div>
           <label class="mb-2 block text-sm font-medium theme-text-secondary">{{ t('personalCenter.reseller.withdrawAmountLabel') }}</label>
@@ -96,12 +102,18 @@
             type="text"
             inputmode="decimal"
             class="w-full form-input-lg"
+            :disabled="!withdrawEnabled || submittingWithdraw"
             :placeholder="t('personalCenter.reseller.withdrawAmountPlaceholder')"
           />
         </div>
         <div>
           <label class="mb-2 block text-sm font-medium theme-text-secondary">{{ t('personalCenter.reseller.withdrawCurrencyLabel') }}</label>
-          <select v-if="balanceCurrencies.length > 0" v-model="withdrawForm.currency" class="w-full form-input-lg">
+          <select
+            v-if="balanceCurrencies.length > 0"
+            v-model="withdrawForm.currency"
+            class="w-full form-input-lg"
+            :disabled="!withdrawEnabled || submittingWithdraw"
+          >
             <option value="">{{ t('personalCenter.reseller.withdrawCurrencyPlaceholder') }}</option>
             <option v-for="currency in balanceCurrencies" :key="currency" :value="currency">{{ currency }}</option>
           </select>
@@ -110,6 +122,7 @@
             v-model.trim="withdrawForm.currency"
             type="text"
             class="w-full form-input-lg"
+            :disabled="!withdrawEnabled || submittingWithdraw"
             :placeholder="t('personalCenter.reseller.withdrawCurrencyPlaceholder')"
           />
         </div>
@@ -119,6 +132,7 @@
             v-model.trim="withdrawForm.channel"
             type="text"
             class="w-full form-input-lg"
+            :disabled="!withdrawEnabled || submittingWithdraw"
             :placeholder="t('personalCenter.reseller.withdrawChannelPlaceholder')"
           />
         </div>
@@ -128,13 +142,14 @@
             v-model.trim="withdrawForm.account"
             type="text"
             class="w-full form-input-lg"
+            :disabled="!withdrawEnabled || submittingWithdraw"
             :placeholder="t('personalCenter.reseller.withdrawAccountPlaceholder')"
           />
         </div>
         <div class="flex items-end">
           <button
             type="submit"
-            :disabled="submittingWithdraw"
+            :disabled="submittingWithdraw || !withdrawEnabled"
             class="inline-flex h-11 w-full items-center justify-center rounded-xl theme-btn-primary px-5 text-sm font-bold transition-colors disabled:cursor-not-allowed disabled:opacity-60"
           >
             {{ submittingWithdraw ? t('personalCenter.reseller.withdrawing') : t('personalCenter.reseller.withdrawSubmit') }}
@@ -291,14 +306,17 @@ import {
   RESELLER_LEDGER_STATUS_LOCKED,
   RESELLER_LEDGER_STATUS_PENDING_CONFIRM,
   RESELLER_LEDGER_STATUS_WITHDRAWN,
-  RESELLER_LEDGER_TYPE_ORDER_PROFIT,
-  RESELLER_LEDGER_TYPE_REFUND_DEDUCT,
-  RESELLER_LEDGER_TYPE_WITHDRAW_LOCK,
   RESELLER_WITHDRAW_STATUS_PAID,
   RESELLER_WITHDRAW_STATUS_PENDING,
   RESELLER_WITHDRAW_STATUS_REJECTED,
 } from '../../constants/reseller'
 import { pageAlertClass, type PageAlert } from '../../utils/alerts'
+import {
+  getResellerFinanceStatusView,
+  getResellerLedgerTypeKey,
+  getResellerWithdrawDisabledReasonKey,
+  isResellerWithdrawEnabled,
+} from '../../utils/resellerFinance'
 
 const { t } = useI18n()
 
@@ -346,15 +364,21 @@ const primaryBalanceText = computed(() => {
   return `${first.available_amount} ${first.currency}`
 })
 
-const profileStatusText = computed(() => {
-  const settlementStatus = dashboard.value?.profile?.settlement_status || '-'
-  return settlementStatusLabel(settlementStatus)
+const withdrawEnabled = computed(() => isResellerWithdrawEnabled(dashboard.value))
+
+const withdrawDisabledReasonText = computed(() => {
+  const key = getResellerWithdrawDisabledReasonKey(dashboard.value?.withdraw_disabled_reason)
+  return t(`personalCenter.reseller.withdrawDisabledReason.${key}`)
 })
 
-const profileStatusClass = computed(() => {
-  if (dashboard.value?.profile?.settlement_status === 'normal') return 'theme-badge-success'
-  return 'theme-badge-warning'
+const profileStatusView = computed(() => getResellerFinanceStatusView(dashboard.value?.profile))
+
+const profileStatusText = computed(() => {
+  const view = profileStatusView.value
+  return t(`personalCenter.reseller.${view.namespace}.${view.key}`)
 })
+
+const profileStatusClass = computed(() => profileStatusView.value.badgeClass)
 
 const ensureWithdrawCurrency = () => {
   if (withdrawForm.currency || balanceCurrencies.value.length === 0) return
@@ -433,6 +457,13 @@ const initialize = async () => {
 
 const handleApplyWithdraw = async () => {
   panelAlert.value = null
+  if (!withdrawEnabled.value) {
+    panelAlert.value = {
+      level: 'warning',
+      message: withdrawDisabledReasonText.value,
+    }
+    return
+  }
   if (!withdrawForm.amount.trim()) {
     panelAlert.value = {
       level: 'warning',
@@ -487,13 +518,6 @@ const handleApplyWithdraw = async () => {
   }
 }
 
-const settlementStatusLabel = (status?: string) => {
-  if (status === 'normal') return t('personalCenter.reseller.settlementStatusMap.normal')
-  if (status === 'frozen_review') return t('personalCenter.reseller.settlementStatusMap.frozenReview')
-  if (status === 'disabled') return t('personalCenter.reseller.settlementStatusMap.disabled')
-  return status || '-'
-}
-
 const balanceStatusLabel = (status?: string) => {
   if (status === RESELLER_BALANCE_STATUS_NORMAL) return t('personalCenter.reseller.balanceStatus.normal')
   if (status === RESELLER_BALANCE_STATUS_NEGATIVE_BALANCE) return t('personalCenter.reseller.balanceStatus.negativeBalance')
@@ -511,9 +535,8 @@ const balanceStatusClass = (status?: string) => {
 }
 
 const ledgerTypeLabel = (type?: string) => {
-  if (type === RESELLER_LEDGER_TYPE_ORDER_PROFIT) return t('personalCenter.reseller.ledgerType.orderProfit')
-  if (type === RESELLER_LEDGER_TYPE_REFUND_DEDUCT) return t('personalCenter.reseller.ledgerType.refundDeduct')
-  if (type === RESELLER_LEDGER_TYPE_WITHDRAW_LOCK) return t('personalCenter.reseller.ledgerType.withdrawLock')
+  const key = getResellerLedgerTypeKey(type)
+  if (key) return t(`personalCenter.reseller.ledgerType.${key}`)
   return type || '-'
 }
 

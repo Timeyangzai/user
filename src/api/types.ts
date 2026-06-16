@@ -233,6 +233,8 @@ export interface ResellerDashboardData {
     opened: boolean
     profile?: ResellerProfileSummaryData
     balances?: ResellerBalanceData[]
+    withdraw_enabled: boolean
+    withdraw_disabled_reason?: string
 }
 
 export interface ResellerWithdrawApplyPayload {
