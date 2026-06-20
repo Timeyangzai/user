@@ -1,9 +1,12 @@
 <template>
-  <div class="space-y-3">
+  <div class="space-y-4">
     <div class="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
       <div class="min-w-0">
         <div class="truncate text-sm font-bold text-foreground">{{ label }}</div>
-        <div class="text-xs text-muted-foreground">{{ t('personalCenter.reseller.productSettings.basePrice') }} {{ basePrice }}</div>
+        <div class="mt-1 flex flex-wrap gap-1.5">
+          <Badge variant="neutral" size="xs">{{ t('personalCenter.reseller.productSettings.basePrice') }} {{ basePrice }}</Badge>
+          <Badge variant="accent" size="xs">{{ t('personalCenter.reseller.productSettings.effectivePrice') }} {{ effectivePrice || '-' }}</Badge>
+        </div>
       </div>
       <label class="inline-flex items-center gap-2 text-sm text-foreground">
         <Switch :model-value="modelValue.is_listed" @update:model-value="updateBoolean" />
@@ -11,7 +14,7 @@
       </label>
     </div>
 
-    <div class="grid grid-cols-1 gap-3 md:grid-cols-4">
+    <div class="grid grid-cols-1 gap-3 md:grid-cols-[220px_minmax(0,1fr)]">
       <Select :model-value="modelValue.pricing_mode" @update:model-value="(v) => updateString('pricing_mode', v)">
         <SelectTrigger>
           <SelectValue :placeholder="t('personalCenter.reseller.productSettings.pricingMode')" />
@@ -24,6 +27,7 @@
         </SelectContent>
       </Select>
       <Input
+        v-if="modelValue.pricing_mode === 'markup_percent'"
         :model-value="modelValue.markup_percent"
         type="text"
         inputmode="decimal"
@@ -31,6 +35,7 @@
         @update:model-value="(v) => updateString('markup_percent', v)"
       />
       <Input
+        v-else-if="modelValue.pricing_mode === 'fixed_markup'"
         :model-value="modelValue.fixed_markup_amount"
         type="text"
         inputmode="decimal"
@@ -38,6 +43,7 @@
         @update:model-value="(v) => updateString('fixed_markup_amount', v)"
       />
       <Input
+        v-else-if="modelValue.pricing_mode === 'fixed_price'"
         :model-value="modelValue.fixed_price_amount"
         type="text"
         inputmode="decimal"
@@ -50,6 +56,7 @@
 
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
+import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
@@ -58,6 +65,7 @@ import type { ResellerProductSettingPayloadItem } from '../../api/types'
 const props = defineProps<{
   label: string
   basePrice: string
+  effectivePrice?: string
   modelValue: ResellerProductSettingPayloadItem
 }>()
 

@@ -23,70 +23,193 @@
     <ResellerPageState v-if="loading" loading :title="t('resellerConsole.common.loading')" />
 
     <template v-else>
-      <Card v-if="canSubmitDomain" class="p-4">
-        <form class="grid grid-cols-1 gap-3 md:grid-cols-[1fr_auto]" @submit.prevent="submitDomain">
-          <Input
-            v-model.trim="domainForm.domain"
-            type="text"
-            :disabled="submitting"
-            :placeholder="t('personalCenter.reseller.customDomainPlaceholder')"
-          />
-          <Button type="submit" :disabled="submitting || !domainForm.domain.trim()">
-            {{ submitting ? t('personalCenter.reseller.submittingDomain') : t('personalCenter.reseller.submitDomain') }}
-          </Button>
-        </form>
-      </Card>
+      <section class="overflow-hidden rounded-lg border border-border bg-card shadow-sm">
+        <div class="border-b border-border px-5 py-4 sm:px-6">
+          <div class="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+            <div class="flex min-w-0 items-start gap-3">
+              <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                <Globe2 class="h-5 w-5" />
+              </span>
+              <div class="min-w-0">
+                <div class="flex flex-wrap items-center gap-2">
+                  <h2 class="text-base font-bold text-foreground">{{ t('resellerConsole.domains.workspaceTitle') }}</h2>
+                  <ResellerStatusBadge v-if="primaryDomain" :label="t('resellerConsole.domains.primaryBadge')" tone="accent" />
+                </div>
+                <p class="mt-1 text-sm text-muted-foreground">{{ t('resellerConsole.domains.workspaceDescription') }}</p>
+                <div class="mt-2 break-all font-mono text-sm font-semibold text-foreground">
+                  {{ primaryDomain?.domain || t('resellerConsole.domains.noPrimaryDomain') }}
+                </div>
+              </div>
+            </div>
 
-      <ResellerPageState
-        v-if="domains.length === 0"
-        :title="t('personalCenter.reseller.domainEmpty')"
-        :description="t('resellerConsole.domains.emptyDescription')"
-        :icon="Globe"
-      />
+            <div class="grid overflow-hidden rounded-lg border border-border bg-background sm:grid-cols-3">
+              <div class="min-w-0 px-4 py-3">
+                <div class="text-xs font-semibold uppercase text-muted-foreground">{{ t('resellerConsole.domains.primaryTitle') }}</div>
+                <div class="mt-1 text-lg font-bold text-foreground">{{ primaryDomain ? 1 : 0 }}</div>
+              </div>
+              <div class="min-w-0 border-t border-border px-4 py-3 sm:border-l sm:border-t-0">
+                <div class="text-xs font-semibold uppercase text-muted-foreground">{{ t('resellerConsole.domains.activeTitle') }}</div>
+                <div class="mt-1 text-lg font-bold text-success">{{ activeDomains.length }}</div>
+              </div>
+              <div class="min-w-0 border-t border-border px-4 py-3 sm:border-l sm:border-t-0">
+                <div class="text-xs font-semibold uppercase text-muted-foreground">{{ t('resellerConsole.domains.reviewTitle') }}</div>
+                <div class="mt-1 text-lg font-bold text-warning">{{ pendingDomains.length }}</div>
+              </div>
+            </div>
+          </div>
+        </div>
 
-      <template v-else>
-        <section v-for="group in domainGroups" :key="group.key">
-          <h2 class="mb-3 text-sm font-bold text-foreground">{{ group.title }}</h2>
-          <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
-            <Card v-for="item in group.items" :key="item.id" class="p-4 sm:p-5">
-              <div class="flex items-start justify-between gap-3">
+        <div class="divide-y divide-border">
+          <section class="grid gap-4 px-5 py-5 sm:px-6 lg:grid-cols-[180px_minmax(0,1fr)]">
+            <div class="flex items-start gap-3">
+              <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
+                <Link2 class="h-4 w-4" />
+              </span>
+              <div>
+                <h3 class="text-sm font-bold text-foreground">{{ t('resellerConsole.domains.systemDomainTitle') }}</h3>
+                <p class="mt-1 text-xs leading-relaxed text-muted-foreground">
+                  {{ systemDomain ? t('resellerConsole.domains.systemAssignedDesc') : t('resellerConsole.domains.systemWaitingDesc') }}
+                </p>
+              </div>
+            </div>
+
+            <div v-if="systemDomain" class="min-w-0">
+              <div class="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
                 <div class="min-w-0">
-                  <div class="break-all font-mono text-sm font-bold text-foreground">{{ item.domain }}</div>
-                  <div class="mt-2 flex flex-wrap gap-2 text-xs">
-                    <ResellerStatusBadge :label="domainStatusLabel(item.status)" :tone="domainTone(item.status)" />
-                    <ResellerStatusBadge :label="verificationLabel(item.verification_status)" :tone="verificationTone(item.verification_status)" />
-                    <ResellerStatusBadge :label="domainTypeLabel(item.type)" tone="neutral" />
+                  <div class="break-all font-mono text-base font-bold text-foreground">{{ systemDomain.domain }}</div>
+                  <div class="mt-2 flex flex-wrap gap-2">
+                    <ResellerStatusBadge :label="domainStatusLabel(systemDomain.status)" :tone="domainTone(systemDomain.status)" dot />
+                    <ResellerStatusBadge :label="verificationLabel(systemDomain.verification_status)" :tone="verificationTone(systemDomain.verification_status)" />
+                    <ResellerStatusBadge :label="domainTypeLabel(systemDomain.type)" tone="neutral" />
+                    <ResellerStatusBadge v-if="systemDomain.is_primary && isActiveVerifiedDomain(systemDomain)" :label="t('personalCenter.reseller.primaryDomain')" tone="accent" />
+                  </div>
+                  <div class="mt-3 text-xs text-muted-foreground">
+                    {{ t('personalCenter.reseller.updatedAt') }} {{ formatResellerConsoleDate(systemDomain.updated_at) }}
                   </div>
                 </div>
-                <ResellerStatusBadge v-if="item.is_primary" :label="t('personalCenter.reseller.primaryDomain')" tone="accent" />
-              </div>
-
-              <div class="mt-3 flex flex-wrap items-center gap-2">
-                <ResellerCopyButton :value="item.domain" :label="t('resellerConsole.common.copy')" />
-                <Button as-child variant="ghost" size="sm">
-                  <a :href="`https://${item.domain}`" target="_blank" rel="noopener noreferrer">
-                    <ExternalLink class="h-4 w-4" />
-                    {{ t('resellerConsole.domains.visit') }}
-                  </a>
-                </Button>
-              </div>
-
-              <div v-if="item.verification_token && item.verification_status !== 'verified'" class="mt-4 rounded-xl border border-dashed px-3 py-3 text-xs text-muted-foreground">
-                <div class="font-semibold text-foreground">{{ t('resellerConsole.domains.verifyTitle') }}</div>
-                <p class="mt-1 leading-relaxed">{{ t('resellerConsole.domains.verifyDesc') }}</p>
-                <div class="mt-2 flex items-center justify-between gap-2 rounded-lg bg-muted px-2.5 py-2">
-                  <span class="min-w-0 break-all font-mono text-foreground">{{ item.verification_token }}</span>
-                  <ResellerCopyButton :value="item.verification_token" :show-label="false" />
+                <div class="flex shrink-0 flex-wrap items-center gap-2">
+                  <ResellerCopyButton :value="systemDomain.domain" :label="t('resellerConsole.common.copy')" />
+                  <Button as-child variant="ghost" size="sm">
+                    <a :href="`https://${systemDomain.domain}`" target="_blank" rel="noopener noreferrer">
+                      <ExternalLink class="h-4 w-4" />
+                      {{ t('resellerConsole.domains.visit') }}
+                    </a>
+                  </Button>
                 </div>
               </div>
+            </div>
 
-              <div class="mt-4 text-xs text-muted-foreground">
-                {{ t('personalCenter.reseller.updatedAt') }} {{ formatResellerConsoleDate(item.updated_at) }}
+            <div v-else class="rounded-lg border border-dashed border-border bg-muted/20 px-4 py-4">
+              <div class="flex items-start gap-3">
+                <CircleAlert class="mt-0.5 h-4 w-4 shrink-0 text-warning" />
+                <div>
+                  <h4 class="text-sm font-semibold text-foreground">{{ t('resellerConsole.domains.systemEmptyTitle') }}</h4>
+                  <p class="mt-1 text-sm leading-relaxed text-muted-foreground">{{ t('resellerConsole.domains.systemEmptyDescription') }}</p>
+                </div>
               </div>
-            </Card>
-          </div>
-        </section>
-      </template>
+            </div>
+          </section>
+
+          <section class="grid gap-4 px-5 py-5 sm:px-6 lg:grid-cols-[180px_minmax(0,1fr)]">
+            <div class="flex items-start gap-3">
+              <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
+                <Plus class="h-4 w-4" />
+              </span>
+              <div>
+                <h3 class="text-sm font-bold text-foreground">{{ t('personalCenter.reseller.customDomainTitle') }}</h3>
+                <p class="mt-1 text-xs leading-relaxed text-muted-foreground">{{ t('resellerConsole.domains.submitCustomDesc') }}</p>
+              </div>
+            </div>
+
+            <div>
+              <form v-if="canSubmitDomain" class="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto]" @submit.prevent="submitDomain">
+                <Input
+                  v-model.trim="domainForm.domain"
+                  type="text"
+                  :disabled="submitting"
+                  :placeholder="t('personalCenter.reseller.customDomainPlaceholder')"
+                />
+                <Button type="submit" class="md:min-w-32" :disabled="submitting || !domainForm.domain.trim()">
+                  {{ submitting ? t('personalCenter.reseller.submittingDomain') : t('personalCenter.reseller.submitDomain') }}
+                </Button>
+              </form>
+              <p v-else class="rounded-lg border border-dashed border-border bg-muted/20 px-4 py-3 text-sm text-muted-foreground">
+                {{ t('resellerConsole.domains.submitDisabledDesc') }}
+              </p>
+              <p class="mt-2 text-xs leading-relaxed text-muted-foreground">{{ t('resellerConsole.domains.verifyDesc') }}</p>
+            </div>
+          </section>
+
+          <section>
+            <div class="flex flex-col gap-2 px-5 py-4 sm:flex-row sm:items-end sm:justify-between sm:px-6">
+              <div>
+                <h3 class="text-sm font-bold text-foreground">{{ t('resellerConsole.domains.customDomains') }}</h3>
+                <p class="mt-1 text-sm text-muted-foreground">{{ t('resellerConsole.domains.customDescription') }}</p>
+              </div>
+              <ResellerStatusBadge :label="String(customDomains.length)" tone="neutral" />
+            </div>
+
+            <div v-if="customDomains.length > 0" class="border-t border-border">
+              <div class="hidden grid-cols-[minmax(0,1.3fr)_140px_150px_150px_150px] gap-3 bg-muted/30 px-5 py-3 text-xs font-semibold uppercase text-muted-foreground sm:px-6 md:grid">
+                <div>{{ t('resellerConsole.domains.tableDomain') }}</div>
+                <div>{{ t('resellerConsole.domains.tableStatus') }}</div>
+                <div>{{ t('resellerConsole.domains.tableVerification') }}</div>
+                <div>{{ t('resellerConsole.domains.tableUpdated') }}</div>
+                <div class="text-right">{{ t('resellerConsole.domains.tableActions') }}</div>
+              </div>
+
+              <div class="divide-y divide-border">
+                <div
+                  v-for="item in customDomains"
+                  :key="item.id"
+                  class="grid gap-3 px-5 py-4 sm:px-6 md:grid-cols-[minmax(0,1.3fr)_140px_150px_150px_150px] md:items-center"
+                >
+                  <div class="min-w-0">
+                    <div class="flex flex-wrap items-center gap-2">
+                      <div class="min-w-0 break-all font-mono text-sm font-bold text-foreground">{{ item.domain }}</div>
+                      <ResellerStatusBadge v-if="item.is_primary && isActiveVerifiedDomain(item)" :label="t('personalCenter.reseller.primaryDomain')" tone="accent" />
+                    </div>
+                    <div class="mt-1 text-xs text-muted-foreground md:hidden">{{ domainTypeLabel(item.type) }}</div>
+                  </div>
+
+                  <div class="flex items-center justify-between gap-3 md:block">
+                    <span class="text-xs font-medium text-muted-foreground md:hidden">{{ t('resellerConsole.domains.tableStatus') }}</span>
+                    <ResellerStatusBadge :label="domainStatusLabel(item.status)" :tone="domainTone(item.status)" dot />
+                  </div>
+
+                  <div class="flex items-center justify-between gap-3 md:block">
+                    <span class="text-xs font-medium text-muted-foreground md:hidden">{{ t('resellerConsole.domains.tableVerification') }}</span>
+                    <ResellerStatusBadge :label="verificationLabel(item.verification_status)" :tone="verificationTone(item.verification_status)" />
+                  </div>
+
+                  <div class="flex items-center justify-between gap-3 text-xs text-muted-foreground md:block">
+                    <span class="font-medium md:hidden">{{ t('resellerConsole.domains.tableUpdated') }}</span>
+                    <span>{{ formatResellerConsoleDate(item.updated_at) }}</span>
+                  </div>
+
+                  <div class="flex flex-wrap items-center gap-2 md:justify-end">
+                    <ResellerCopyButton :value="item.domain" :label="t('resellerConsole.common.copy')" />
+                    <Button v-if="isActiveVerifiedDomain(item)" as-child variant="ghost" size="sm">
+                      <a :href="`https://${item.domain}`" target="_blank" rel="noopener noreferrer">
+                        <ExternalLink class="h-4 w-4" />
+                        {{ t('resellerConsole.domains.visit') }}
+                      </a>
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div v-else class="border-t border-border px-5 py-8 text-center sm:px-6">
+              <span class="mx-auto flex h-11 w-11 items-center justify-center rounded-lg bg-muted text-muted-foreground">
+                <Globe2 class="h-5 w-5" />
+              </span>
+              <h3 class="mt-3 text-sm font-bold text-foreground">{{ t('personalCenter.reseller.domainEmpty') }}</h3>
+              <p class="mx-auto mt-2 max-w-xl text-sm text-muted-foreground">{{ t('resellerConsole.domains.customEmptyDescription') }}</p>
+            </div>
+          </section>
+        </div>
+      </section>
     </template>
   </div>
 </template>
@@ -94,11 +217,10 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { ExternalLink, Globe, RotateCw } from 'lucide-vue-next'
-import { resellerAPI, type ResellerManagementSnapshotData } from '../../api'
+import { CircleAlert, ExternalLink, Globe2, Link2, Plus, RotateCw } from 'lucide-vue-next'
+import { resellerAPI, type ResellerDomainData, type ResellerManagementSnapshotData } from '../../api'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
-import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import ResellerCopyButton from '../../components/reseller-console/ResellerCopyButton.vue'
 import ResellerPageState from '../../components/reseller-console/ResellerPageState.vue'
@@ -128,15 +250,14 @@ const domainForm = reactive({ domain: '' })
 
 const domains = computed(() => snapshot.value?.domains || [])
 const canSubmitDomain = computed(() => snapshot.value?.profile?.status === RESELLER_PROFILE_STATUS_ACTIVE)
-
-const domainGroups = computed(() => {
-  const system = domains.value.filter((d) => d.type === RESELLER_DOMAIN_TYPE_SUBDOMAIN)
-  const custom = domains.value.filter((d) => d.type !== RESELLER_DOMAIN_TYPE_SUBDOMAIN)
-  return [
-    { key: 'system', title: t('resellerConsole.domains.systemDomains'), items: system },
-    { key: 'custom', title: t('resellerConsole.domains.customDomains'), items: custom },
-  ].filter((g) => g.items.length > 0)
-})
+const isActiveVerifiedDomain = (domain: ResellerDomainData) =>
+  domain.status === RESELLER_DOMAIN_STATUS_ACTIVE &&
+  domain.verification_status === RESELLER_DOMAIN_VERIFICATION_VERIFIED
+const systemDomain = computed(() => domains.value.find((d) => d.type === RESELLER_DOMAIN_TYPE_SUBDOMAIN) || null)
+const customDomains = computed(() => domains.value.filter((d) => d.type !== RESELLER_DOMAIN_TYPE_SUBDOMAIN))
+const activeDomains = computed(() => domains.value.filter(isActiveVerifiedDomain))
+const primaryDomain = computed(() => activeDomains.value.find((d) => d.is_primary) || null)
+const pendingDomains = computed(() => domains.value.filter((d) => d.status === RESELLER_DOMAIN_STATUS_PENDING_REVIEW || d.verification_status === RESELLER_DOMAIN_VERIFICATION_PENDING))
 
 const load = async () => {
   loading.value = true
@@ -165,7 +286,7 @@ const submitDomain = async () => {
   }
 }
 
-const domainStatusLabel = (status?: string) => t(`personalCenter.reseller.domainStatusMap.${getResellerDomainStatusKey(status)}`)
+const domainStatusLabel = (status?: string) => t(`personalCenter.reseller.domainStatus.${getResellerDomainStatusKey(status)}`)
 
 const domainTone = (status?: string): ResellerBadgeTone => {
   if (status === RESELLER_DOMAIN_STATUS_ACTIVE) return 'success'
@@ -175,21 +296,22 @@ const domainTone = (status?: string): ResellerBadgeTone => {
 }
 
 const verificationLabel = (status?: string) => {
-  if (status === RESELLER_DOMAIN_VERIFICATION_VERIFIED) return t('personalCenter.reseller.domainVerificationMap.verified')
-  if (status === RESELLER_DOMAIN_VERIFICATION_PENDING) return t('personalCenter.reseller.domainVerificationMap.pending')
-  if (status === RESELLER_DOMAIN_VERIFICATION_FAILED) return t('personalCenter.reseller.domainVerificationMap.failed')
-  return t('personalCenter.reseller.domainVerificationMap.unknown')
+  if (status === RESELLER_DOMAIN_VERIFICATION_VERIFIED) return t('personalCenter.reseller.domainVerification.verified')
+  if (status === RESELLER_DOMAIN_VERIFICATION_PENDING) return t('personalCenter.reseller.domainVerification.pending')
+  if (status === RESELLER_DOMAIN_VERIFICATION_FAILED) return t('personalCenter.reseller.domainVerification.failed')
+  return t('personalCenter.reseller.domainVerification.unknown')
 }
 
 const verificationTone = (status?: string): ResellerBadgeTone => {
   if (status === RESELLER_DOMAIN_VERIFICATION_VERIFIED) return 'success'
   if (status === RESELLER_DOMAIN_VERIFICATION_PENDING) return 'warning'
+  if (status === RESELLER_DOMAIN_VERIFICATION_FAILED) return 'warning'
   return 'neutral'
 }
 
 const domainTypeLabel = (type?: string) => {
-  if (type === RESELLER_DOMAIN_TYPE_SUBDOMAIN) return t('personalCenter.reseller.domainTypeMap.subdomain')
-  if (type === RESELLER_DOMAIN_TYPE_CUSTOM) return t('personalCenter.reseller.domainTypeMap.custom')
+  if (type === RESELLER_DOMAIN_TYPE_SUBDOMAIN) return t('personalCenter.reseller.domainType.subdomain')
+  if (type === RESELLER_DOMAIN_TYPE_CUSTOM) return t('personalCenter.reseller.domainType.custom')
   return type || '-'
 }
 

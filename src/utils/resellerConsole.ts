@@ -35,6 +35,17 @@ const activeModules: ResellerModuleKey[] = [
   'withdraws',
 ]
 
+const pathModuleMap: Record<string, ResellerModuleKey> = {
+  apply: 'apply',
+  domains: 'domains',
+  site: 'site',
+  products: 'products',
+  orders: 'orders',
+  finance: 'finance',
+  ledger: 'ledger',
+  withdraws: 'withdraws',
+}
+
 export const getResellerConsoleState = (snapshot?: ResellerManagementSnapshotData | null): ResellerConsoleState => {
   const status = snapshot?.profile?.status || (snapshot?.opened ? 'unknown' : 'not_opened')
   const profileStatus = status as ResellerConsoleState['profileStatus']
@@ -56,6 +67,22 @@ export const getResellerConsoleState = (snapshot?: ResellerManagementSnapshotDat
     canApply,
     modules,
   }
+}
+
+export const resolveResellerConsoleModule = (path: string): ResellerModuleKey => {
+  const cleanPath = String(path || '').split(/[?#]/)[0]?.replace(/\/+$/, '') || '/reseller'
+  if (cleanPath === '/reseller') return 'dashboard'
+  const segment = cleanPath.replace(/^\/reseller\/?/, '').split('/')[0] || ''
+  return pathModuleMap[segment] || 'dashboard'
+}
+
+export const canRenderResellerConsoleModule = (
+  path: string,
+  state: ResellerConsoleState,
+) => {
+  const module = resolveResellerConsoleModule(path)
+  if (module === 'apply' || module === 'dashboard') return true
+  return state.modules[module]?.enabled === true
 }
 
 export const formatResellerConsoleDate = (raw?: string | null) => {

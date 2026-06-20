@@ -23,19 +23,19 @@ test('reseller withdraw disabled reason maps backend reason keys', () => {
 test('reseller finance status prioritizes inactive profile before settlement status', () => {
   assert.deepEqual(
     getResellerFinanceStatusView(null),
-    { namespace: 'profileStatusMap', key: 'unknown', badgeClass: 'theme-badge-neutral' },
+    { namespace: 'profileStatusMap', key: 'unknown', badgeTone: 'neutral' },
   )
   assert.deepEqual(
     getResellerFinanceStatusView({ status: 'active', settlement_status: 'normal' }),
-    { namespace: 'settlementStatusMap', key: 'normal', badgeClass: 'theme-badge-success' },
+    { namespace: 'settlementStatusMap', key: 'normal', badgeTone: 'success' },
   )
   assert.deepEqual(
     getResellerFinanceStatusView({ status: 'active', settlement_status: 'frozen' }),
-    { namespace: 'settlementStatusMap', key: 'frozen', badgeClass: 'theme-badge-warning' },
+    { namespace: 'settlementStatusMap', key: 'frozen', badgeTone: 'warning' },
   )
   assert.deepEqual(
     getResellerFinanceStatusView({ status: 'disabled', settlement_status: 'normal' }),
-    { namespace: 'profileStatusMap', key: 'disabled', badgeClass: 'theme-badge-neutral' },
+    { namespace: 'profileStatusMap', key: 'disabled', badgeTone: 'neutral' },
   )
 })
 

@@ -4,7 +4,6 @@
 
     <ResellerFilterBar @search="reload" @reset="resetFilters">
       <template #fields>
-        <Input v-model.trim="filters.currency" :placeholder="t('resellerConsole.common.currencyPlaceholder')" />
         <Select v-model="filters.type">
           <SelectTrigger>
             <SelectValue :placeholder="t('resellerConsole.common.allTypes')" />
@@ -141,14 +140,13 @@ import { getResellerLedgerTypeKey } from '../../utils/resellerFinance'
 
 const { t } = useI18n()
 const { ledgerLoading, ledgerEntries, ledgerPagination, loadLedgerEntries } = useResellerFinance()
-const filters = reactive({ currency: '', type: 'all', status: 'all', order_id: undefined as number | undefined })
+const filters = reactive({ type: 'all', status: 'all', order_id: undefined as number | undefined })
 
 const hasActiveFilter = computed(() =>
-  Boolean(filters.currency || (filters.type && filters.type !== 'all') || (filters.status && filters.status !== 'all') || filters.order_id),
+  Boolean((filters.type && filters.type !== 'all') || (filters.status && filters.status !== 'all') || filters.order_id),
 )
 
 const currentParams = () => ({
-  currency: filters.currency || undefined,
   type: filters.type && filters.type !== 'all' ? filters.type : undefined,
   status: filters.status && filters.status !== 'all' ? filters.status : undefined,
   order_id: filters.order_id || undefined,
@@ -158,7 +156,6 @@ const reload = () => loadLedgerEntries({ ...currentParams(), page: 1 })
 const goPage = (page: number) => loadLedgerEntries({ ...currentParams(), page })
 
 const resetFilters = () => {
-  filters.currency = ''
   filters.type = 'all'
   filters.status = 'all'
   filters.order_id = undefined

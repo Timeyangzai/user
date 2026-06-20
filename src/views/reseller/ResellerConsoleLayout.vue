@@ -34,14 +34,27 @@
       </aside>
 
       <main class="min-w-0 flex-1 px-4 py-6 lg:px-0 lg:py-0">
-        <RouterView />
+        <ResellerPageState v-if="!profileReady || profileLoading" loading :title="t('resellerConsole.common.loading')" />
+        <RouterView v-else-if="canRenderCurrentModule" />
+        <Card v-else class="p-6 sm:p-8">
+          <div class="mx-auto max-w-xl text-center">
+            <span class="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary">
+              <ClipboardCheck class="h-6 w-6" />
+            </span>
+            <h2 class="mt-4 text-lg font-bold text-foreground">{{ t('resellerConsole.dashboard.inactiveTitle') }}</h2>
+            <p class="mt-2 text-sm text-muted-foreground">{{ t('resellerConsole.dashboard.inactiveDescription') }}</p>
+            <Button as-child class="mt-5">
+              <RouterLink to="/reseller/apply">{{ t('resellerConsole.nav.apply') }}</RouterLink>
+            </Button>
+          </div>
+        </Card>
       </main>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, type Component } from 'vue'
+import { computed, onMounted, ref, type Component } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute } from 'vue-router'
 import {
@@ -55,10 +68,17 @@ import {
   Tag,
   Upload,
 } from 'lucide-vue-next'
+import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
 import ResellerConsoleTopbar from '../../components/reseller-console/ResellerConsoleTopbar.vue'
+import ResellerPageState from '../../components/reseller-console/ResellerPageState.vue'
+import { useResellerProfile } from '../../composables/reseller/useResellerProfile'
+import { canRenderResellerConsoleModule } from '../../utils/resellerConsole'
 
 const { t } = useI18n()
 const route = useRoute()
+const { loading: profileLoading, state: profileState, load: loadProfile } = useResellerProfile()
+const profileReady = ref(false)
 
 type NavDef = { to: string; label: string; icon: Component }
 
@@ -110,4 +130,13 @@ const currentTitle = computed(() => {
   }
   return t('resellerConsole.title')
 })
+
+const canRenderCurrentModule = computed(() => canRenderResellerConsoleModule(route.path, profileState.value))
+
+const initializeProfile = async () => {
+  await loadProfile()
+  profileReady.value = true
+}
+
+onMounted(initializeProfile)
 </script>

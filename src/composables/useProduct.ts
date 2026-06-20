@@ -20,10 +20,12 @@ export function useLocalized() {
   const formatPrice = (amount: any, currency?: any): string => {
     const cur = currency ?? siteCurrency.value
     if (amount === null || amount === undefined || amount === '') return '-'
+    const cents = amountToCents(amount)
+    const displayAmount = cents === null ? String(amount) : centsToAmount(cents)
     if (cur === null || cur === undefined || cur === '') {
-      return String(amount)
+      return displayAmount
     }
-    return `${amount} ${cur}`
+    return `${displayAmount} ${cur}`
   }
 
   return { getLocalizedText, siteCurrency, formatPrice }

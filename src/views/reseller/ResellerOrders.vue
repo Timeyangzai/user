@@ -11,8 +11,6 @@
     <ResellerFilterBar @search="reload" @reset="resetFilters">
       <template #fields>
         <Input v-model.trim="filters.order_no" :placeholder="t('resellerConsole.orders.search')" />
-        <Input v-model.trim="filters.domain" :placeholder="t('resellerConsole.orders.domain')" />
-        <Input v-model.trim="filters.currency" :placeholder="t('resellerConsole.common.currencyPlaceholder')" />
         <Select v-model="filters.status">
           <SelectTrigger>
             <SelectValue :placeholder="t('resellerConsole.orders.statusAll')" />
@@ -156,12 +154,12 @@ import {
 const { t, te } = useI18n()
 const router = useRouter()
 const { loading, rows, stats, pagination, load, loadStats } = useResellerOrders()
-const filters = reactive({ order_no: '', domain: '', currency: '', status: 'all', created_from: '', created_to: '' })
+const filters = reactive({ order_no: '', status: 'all', created_from: '', created_to: '' })
 
 const statusOptions = ['pending_payment', 'paid', 'completed', 'partially_refunded', 'refunded', 'canceled']
 
 const hasActiveFilter = computed(() =>
-  Boolean(filters.order_no || filters.domain || filters.currency || (filters.status && filters.status !== 'all') || filters.created_from || filters.created_to),
+  Boolean(filters.order_no || (filters.status && filters.status !== 'all') || filters.created_from || filters.created_to),
 )
 
 const statusLabel = (status?: string) => {
@@ -180,8 +178,6 @@ const profitTone = (status?: string): ResellerBadgeTone => {
 
 const currentParams = () => ({
   order_no: filters.order_no || undefined,
-  domain: filters.domain || undefined,
-  currency: filters.currency || undefined,
   status: filters.status && filters.status !== 'all' ? filters.status : undefined,
   created_from: filters.created_from || undefined,
   created_to: filters.created_to || undefined,
@@ -193,8 +189,6 @@ const goDetail = (orderNo: string) => router.push(`/reseller/orders/${encodeURIC
 
 const resetFilters = () => {
   filters.order_no = ''
-  filters.domain = ''
-  filters.currency = ''
   filters.status = 'all'
   filters.created_from = ''
   filters.created_to = ''

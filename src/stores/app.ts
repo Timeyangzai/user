@@ -19,6 +19,10 @@ export const useAppStore = defineStore('app', () => {
         const siteIcon = String(config.value?.brand?.site_icon || '').trim()
         return siteIcon ? getImageUrl(siteIcon) : '/dj.svg'
     })
+    const isResellerTenant = computed(() => {
+        return String(config.value?.tenant?.mode || '').trim().toLowerCase() === 'reseller'
+    })
+    const canAccessResellerConsole = computed(() => !!config.value && !isResellerTenant.value)
 
     // 设置语言
     const setLocale = (newLocale: string) => {
@@ -111,6 +115,8 @@ export const useAppStore = defineStore('app', () => {
         config,
         loading,
         serverTimeOffset,
+        isResellerTenant,
+        canAccessResellerConsole,
         setLocale,
         loadConfig,
         applySEO,

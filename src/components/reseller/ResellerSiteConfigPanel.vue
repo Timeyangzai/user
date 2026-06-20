@@ -33,6 +33,31 @@
     </div>
 
     <form v-else class="space-y-5 pb-20" @submit.prevent="handleSave">
+      <div class="space-y-5">
+        <div class="rounded-2xl border bg-muted/30 p-2">
+          <div class="grid grid-cols-2 gap-2 lg:grid-cols-4">
+            <button
+              v-for="section in siteConfigSections"
+              :key="section.value"
+              type="button"
+              class="h-auto rounded-xl px-3 py-2 text-left transition-colors"
+              :class="activeSection === section.value ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:bg-card/70 hover:text-foreground'"
+              @click="activeSection = section.value"
+            >
+              <span class="flex min-w-0 items-center gap-2">
+                <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                  <component :is="section.icon" class="h-4 w-4" />
+                </span>
+                <span class="min-w-0">
+                  <span class="block text-sm font-semibold">{{ section.label }}</span>
+                  <span class="block text-xs font-normal text-muted-foreground">{{ section.description }}</span>
+                </span>
+              </span>
+            </button>
+          </div>
+        </div>
+
+        <div v-show="activeSection === 'brand'" class="mt-0">
       <!-- 基础品牌 -->
       <section class="rounded-2xl border bg-card p-4 sm:p-5">
         <div class="mb-4 flex items-center gap-3">
@@ -61,7 +86,9 @@
           />
         </div>
       </section>
+        </div>
 
+        <div v-show="activeSection === 'support'" class="mt-0">
       <!-- 客服联系方式 -->
       <section class="rounded-2xl border bg-card p-4 sm:p-5">
         <div class="mb-4 flex items-center gap-3">
@@ -84,7 +111,9 @@
           </label>
         </div>
       </section>
+        </div>
 
+        <div v-show="activeSection === 'content'" class="mt-0 space-y-5">
       <!-- SEO -->
       <section class="rounded-2xl border bg-card p-4 sm:p-5">
         <div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -124,60 +153,124 @@
       </section>
 
       <!-- 站点公告 -->
-      <section class="rounded-2xl border bg-card p-4 sm:p-5">
-        <div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div class="flex items-center gap-3">
-            <span class="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 text-primary">
-              <Megaphone class="h-4 w-4" />
-            </span>
-            <div>
-              <h3 class="text-base font-bold text-foreground">{{ t('personalCenter.reseller.siteConfig.sections.announcement') }}</h3>
-              <p class="text-xs text-muted-foreground">{{ t('personalCenter.reseller.siteConfig.descriptions.announcement') }}</p>
+      <section class="overflow-hidden rounded-2xl border bg-card">
+        <div class="border-b bg-muted/30 p-4 sm:p-5">
+          <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div class="flex items-start gap-3">
+              <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                <Megaphone class="h-5 w-5" />
+              </span>
+              <div>
+                <h3 class="text-base font-bold text-foreground">{{ t('personalCenter.reseller.siteConfig.sections.announcement') }}</h3>
+                <p class="mt-1 max-w-2xl text-xs text-muted-foreground">{{ t('personalCenter.reseller.siteConfig.descriptions.announcement') }}</p>
+              </div>
+            </div>
+            <div class="flex flex-wrap items-center gap-2">
+              <span
+                class="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold"
+                :class="form.announcement!.enabled ? 'border-success/30 bg-success/10 text-success' : 'border-border bg-background text-muted-foreground'"
+              >
+                <span class="h-1.5 w-1.5 rounded-full" :class="form.announcement!.enabled ? 'bg-success' : 'bg-muted-foreground/50'"></span>
+                {{ form.announcement!.enabled ? t('personalCenter.reseller.siteConfig.announcementPanel.enabledStatus') : t('personalCenter.reseller.siteConfig.announcementPanel.disabledStatus') }}
+              </span>
+              <label class="inline-flex items-center gap-2 rounded-full border bg-background px-3 py-1.5 text-sm text-foreground">
+                <Switch v-model="form.announcement!.enabled" />
+                {{ t('personalCenter.reseller.siteConfig.fields.announcementEnabled') }}
+              </label>
             </div>
           </div>
-          <label class="inline-flex items-center gap-2 text-sm text-foreground">
-            <Switch v-model="form.announcement!.enabled" />
-            {{ t('personalCenter.reseller.siteConfig.fields.announcementEnabled') }}
-          </label>
         </div>
-        <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
-          <div class="block">
-            <span class="mb-2 block text-sm font-medium text-muted-foreground">{{ t('personalCenter.reseller.siteConfig.fields.announcementType') }}</span>
-            <Select v-model="form.announcement!.type">
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem v-for="opt in announcementTypeOptions" :key="opt.value" :value="opt.value">
-                  <span class="flex items-center gap-2">
-                    <span class="h-2 w-2 rounded-full" :class="opt.dot"></span>
-                    {{ t(opt.label) }}
-                  </span>
-                </SelectItem>
-              </SelectContent>
-            </Select>
+
+        <div class="grid grid-cols-1 gap-5 p-4 lg:grid-cols-[minmax(0,1.08fr)_minmax(320px,0.92fr)] sm:p-5">
+          <div class="space-y-4">
+            <div class="rounded-xl border bg-muted/20 p-4">
+              <div class="mb-3">
+                <h4 class="text-sm font-bold text-foreground">{{ t('personalCenter.reseller.siteConfig.announcementPanel.publishSettings') }}</h4>
+                <p class="mt-1 text-xs text-muted-foreground">{{ t('personalCenter.reseller.siteConfig.announcementPanel.publishSettingsHint') }}</p>
+              </div>
+              <div class="grid gap-4 md:grid-cols-[minmax(0,1fr)_auto] md:items-end">
+                <div class="block">
+                  <span class="mb-2 block text-sm font-medium text-muted-foreground">{{ t('personalCenter.reseller.siteConfig.fields.announcementType') }}</span>
+                  <Select v-model="form.announcement!.type">
+                    <SelectTrigger class="h-11">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem v-for="opt in announcementTypeOptions" :key="opt.value" :value="opt.value">
+                        <span class="flex items-center gap-2">
+                          <component :is="opt.icon" class="h-4 w-4" :class="opt.iconClass" />
+                          {{ t(opt.label) }}
+                        </span>
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div class="block">
+                  <span class="mb-2 block text-sm font-medium text-muted-foreground">{{ t('personalCenter.reseller.siteConfig.announcementPanel.language') }}</span>
+                  <ResellerLocaleTabs v-model="activeLocale" :labels="localeLabels" />
+                </div>
+              </div>
+            </div>
+
+            <label class="block">
+              <span class="mb-2 block text-sm font-medium text-muted-foreground">{{ t('personalCenter.reseller.siteConfig.fields.announcementTitle') }}</span>
+              <Input v-model.trim="form.announcement!.title[activeLocale]" class="h-11 text-base font-semibold" type="text" />
+            </label>
+
+            <div class="block">
+              <span class="mb-2 block text-sm font-medium text-muted-foreground">{{ t('personalCenter.reseller.siteConfig.fields.announcementContent') }}</span>
+              <ResellerRichText :key="`ann-${activeLocale}`" v-model="form.announcement!.content[activeLocale]" />
+            </div>
           </div>
-          <div class="flex items-center justify-end md:col-span-2">
-            <ResellerLocaleTabs v-model="activeLocale" :labels="localeLabels" />
-          </div>
-          <label class="block md:col-span-1">
-            <span class="mb-2 block text-sm font-medium text-muted-foreground">{{ t('personalCenter.reseller.siteConfig.fields.announcementTitle') }}</span>
-            <Input v-model.trim="form.announcement!.title[activeLocale]" type="text" />
-          </label>
-          <div class="block md:col-span-2">
-            <span class="mb-2 block text-sm font-medium text-muted-foreground">{{ t('personalCenter.reseller.siteConfig.fields.announcementContent') }}</span>
-            <ResellerRichText :key="`ann-${activeLocale}`" v-model="form.announcement!.content[activeLocale]" />
-          </div>
-        </div>
-        <div v-if="form.announcement!.enabled && hasAnnouncementPreview" class="mt-4">
-          <p class="mb-1.5 text-xs font-medium uppercase tracking-wide text-muted-foreground">{{ t('personalCenter.reseller.siteConfig.previewLabel') }}</p>
-          <div class="rounded-xl border px-4 py-3 text-sm" :class="announcementPreviewClass">
-            <p v-if="form.announcement!.title[activeLocale]" class="font-semibold">{{ form.announcement!.title[activeLocale] }}</p>
-            <div v-if="announcementPreviewHtml" class="prose prose-sm dark:prose-invert mt-1 max-w-none opacity-90" v-html="announcementPreviewHtml"></div>
-          </div>
+
+          <aside class="rounded-xl border bg-background p-3">
+            <div class="mb-3 flex items-center justify-between gap-3 px-1">
+              <div>
+                <p class="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">{{ t('personalCenter.reseller.siteConfig.announcementPanel.livePreview') }}</p>
+                <p class="mt-1 text-xs text-muted-foreground">{{ t('personalCenter.reseller.siteConfig.announcementPanel.previewHint') }}</p>
+              </div>
+              <span class="rounded-full border px-2 py-1 text-xs font-semibold" :class="announcementToneView.badgeClass">
+                {{ t(announcementToneView.label) }}
+              </span>
+            </div>
+
+            <div
+              class="min-h-[220px] rounded-xl border p-4 shadow-sm transition-colors"
+              :class="form.announcement!.enabled ? announcementToneView.previewClass : 'border-dashed bg-muted/20 text-muted-foreground'"
+            >
+              <div v-if="form.announcement!.enabled && hasAnnouncementPreview" class="flex items-start gap-3">
+                <span class="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl" :class="announcementToneView.iconWrapClass">
+                  <component :is="announcementToneView.icon" class="h-5 w-5" />
+                </span>
+                <div class="min-w-0 flex-1">
+                  <p v-if="form.announcement!.title[activeLocale]" class="break-words text-base font-bold text-foreground">
+                    {{ form.announcement!.title[activeLocale] }}
+                  </p>
+                  <div
+                    v-if="announcementPreviewHtml"
+                    class="theme-prose prose prose-sm dark:prose-invert mt-2 max-w-none break-words"
+                    v-html="announcementPreviewHtml"
+                  ></div>
+                </div>
+              </div>
+              <div v-else class="flex min-h-[188px] flex-col items-center justify-center text-center">
+                <span class="flex h-12 w-12 items-center justify-center rounded-xl bg-muted text-muted-foreground">
+                  <Megaphone class="h-5 w-5" />
+                </span>
+                <p class="mt-3 text-sm font-semibold text-foreground">
+                  {{ form.announcement!.enabled ? t('personalCenter.reseller.siteConfig.announcementPanel.emptyPreviewTitle') : t('personalCenter.reseller.siteConfig.announcementPanel.disabledPreviewTitle') }}
+                </p>
+                <p class="mt-1 max-w-xs text-xs text-muted-foreground">
+                  {{ form.announcement!.enabled ? t('personalCenter.reseller.siteConfig.announcementPanel.emptyPreviewDescription') : t('personalCenter.reseller.siteConfig.announcementPanel.disabledPreviewDescription') }}
+                </p>
+              </div>
+            </div>
+          </aside>
         </div>
       </section>
+        </div>
 
+        <div v-show="activeSection === 'navigation'" class="mt-0 space-y-5">
       <!-- 页脚链接 -->
       <section class="rounded-2xl border bg-card p-4 sm:p-5">
         <div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -221,9 +314,8 @@
         </div>
       </section>
 
-      <!-- 导航 + 主题 -->
-      <section class="grid grid-cols-1 gap-5 lg:grid-cols-2">
-        <div class="rounded-2xl border bg-card p-4 sm:p-5">
+      <!-- 导航 -->
+      <section class="rounded-2xl border bg-card p-4 sm:p-5">
           <div class="mb-4 flex items-center gap-3">
             <span class="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 text-primary">
               <Compass class="h-4 w-4" />
@@ -243,51 +335,9 @@
               <Switch v-model="form.nav_config!.builtin[key]" />
             </label>
           </div>
-        </div>
-
-        <div class="rounded-2xl border bg-card p-4 sm:p-5">
-          <div class="mb-4 flex items-center gap-3">
-            <span class="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 text-primary">
-              <Palette class="h-4 w-4" />
-            </span>
-            <div>
-              <h3 class="text-base font-bold text-foreground">{{ t('personalCenter.reseller.siteConfig.sections.theme') }}</h3>
-              <p class="text-xs text-muted-foreground">{{ t('personalCenter.reseller.siteConfig.descriptions.theme') }}</p>
-            </div>
-          </div>
-          <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
-            <ResellerColorField
-              v-model="form.theme!.primary_color"
-              :label="t('personalCenter.reseller.siteConfig.fields.primaryColor')"
-              placeholder="#2563eb"
-              :clear-label="t('personalCenter.reseller.siteConfig.actions.remove')"
-            />
-            <ResellerColorField
-              v-model="form.theme!.accent_color"
-              :label="t('personalCenter.reseller.siteConfig.fields.accentColor')"
-              placeholder="#16a34a"
-              :clear-label="t('personalCenter.reseller.siteConfig.actions.remove')"
-            />
-            <ResellerColorField
-              v-model="form.theme!.surface_color"
-              :label="t('personalCenter.reseller.siteConfig.fields.surfaceColor')"
-              placeholder="#ffffff"
-              :clear-label="t('personalCenter.reseller.siteConfig.actions.remove')"
-            />
-          </div>
-          <div class="mt-4">
-            <p class="mb-1.5 text-xs font-medium uppercase tracking-wide text-muted-foreground">{{ t('personalCenter.reseller.siteConfig.previewLabel') }}</p>
-            <div class="flex items-center gap-3 rounded-xl border p-3" :style="{ backgroundColor: themeSurface }">
-              <button type="button" class="rounded-lg px-3 py-1.5 text-xs font-semibold text-white shadow-sm" :style="{ backgroundColor: themePrimary }">
-                {{ form.site_name || t('personalCenter.reseller.siteConfig.previewLabel') }}
-              </button>
-              <span class="rounded-full px-2.5 py-1 text-xs font-medium text-white" :style="{ backgroundColor: themeAccent }">
-                {{ t('personalCenter.reseller.siteConfig.fields.accentColor') }}
-              </span>
-            </div>
-          </div>
-        </div>
       </section>
+        </div>
+      </div>
 
       <!-- 保存栏 -->
       <div
@@ -303,17 +353,19 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref, type Component } from 'vue'
 import { useI18n } from 'vue-i18n'
 import {
     Compass,
+    CircleAlert,
+    CircleCheck,
+    Info,
     LifeBuoy,
     Link2,
     Lock,
     Mail,
     Megaphone,
     MessageCircle,
-    Palette,
     Plus,
     RotateCcw,
     Search,
@@ -334,7 +386,6 @@ import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
-import ResellerColorField from './ResellerColorField.vue'
 import ResellerImageField from './ResellerImageField.vue'
 import ResellerLocaleTabs from './ResellerLocaleTabs.vue'
 import ResellerRichText from './ResellerRichText.vue'
@@ -360,10 +411,45 @@ const saving = ref(false)
 const alert = ref<PageAlert | null>(null)
 const snapshot = ref<ResellerSiteConfigSnapshotData | null>(null)
 const activeLocale = ref<ResellerLocale>('zh-CN')
+const activeSection = ref('brand')
 const baseline = ref('')
 const builtinNavKeys = ['blog', 'notice', 'about']
 
 const localeLabels: Record<string, string> = { 'zh-CN': '简体', 'zh-TW': '繁體', 'en-US': 'EN' }
+
+type SiteConfigSection = {
+    value: 'brand' | 'support' | 'content' | 'navigation'
+    label: string
+    description: string
+    icon: Component
+}
+
+const siteConfigSections = computed<SiteConfigSection[]>(() => [
+    {
+        value: 'brand',
+        label: t('personalCenter.reseller.siteConfig.tabs.brand'),
+        description: t('personalCenter.reseller.siteConfig.tabs.brandDescription'),
+        icon: Store,
+    },
+    {
+        value: 'support',
+        label: t('personalCenter.reseller.siteConfig.tabs.support'),
+        description: t('personalCenter.reseller.siteConfig.tabs.supportDescription'),
+        icon: LifeBuoy,
+    },
+    {
+        value: 'content',
+        label: t('personalCenter.reseller.siteConfig.tabs.content'),
+        description: t('personalCenter.reseller.siteConfig.tabs.contentDescription'),
+        icon: Megaphone,
+    },
+    {
+        value: 'navigation',
+        label: t('personalCenter.reseller.siteConfig.tabs.navigation'),
+        description: t('personalCenter.reseller.siteConfig.tabs.navigationDescription'),
+        icon: Compass,
+    },
+])
 
 const supportFields = [
     { key: 'telegram' as const, label: 'personalCenter.reseller.siteConfig.fields.telegram', icon: Send, placeholder: 'https://t.me/example', hint: 'https://t.me/…' },
@@ -373,9 +459,33 @@ const supportFields = [
 ]
 
 const announcementTypeOptions = [
-    { value: 'info', label: 'personalCenter.reseller.siteConfig.announcementTypes.info', dot: 'bg-primary' },
-    { value: 'success', label: 'personalCenter.reseller.siteConfig.announcementTypes.success', dot: 'bg-success' },
-    { value: 'warning', label: 'personalCenter.reseller.siteConfig.announcementTypes.warning', dot: 'bg-amber-500' },
+    {
+        value: 'info',
+        label: 'personalCenter.reseller.siteConfig.announcementTypes.info',
+        icon: Info,
+        iconClass: 'text-primary',
+        iconWrapClass: 'bg-primary/10 text-primary',
+        badgeClass: 'border-primary/30 bg-primary/10 text-primary',
+        previewClass: 'border-primary/20 bg-primary/5',
+    },
+    {
+        value: 'success',
+        label: 'personalCenter.reseller.siteConfig.announcementTypes.success',
+        icon: CircleCheck,
+        iconClass: 'text-success',
+        iconWrapClass: 'bg-success/10 text-success',
+        badgeClass: 'border-success/30 bg-success/10 text-success',
+        previewClass: 'border-success/30 bg-success/10',
+    },
+    {
+        value: 'warning',
+        label: 'personalCenter.reseller.siteConfig.announcementTypes.warning',
+        icon: CircleAlert,
+        iconClass: 'text-warning',
+        iconWrapClass: 'bg-warning/15 text-warning',
+        badgeClass: 'border-warning/40 bg-warning/10 text-warning',
+        previewClass: 'border-warning/40 bg-warning/10',
+    },
 ]
 
 const createBlankForm = (): ResellerSiteConfigPayload => ({
@@ -405,11 +515,6 @@ const createBlankForm = (): ResellerSiteConfigPayload => ({
         builtin: { blog: true, notice: true, about: true },
         custom_items: [],
     },
-    theme: {
-        primary_color: '',
-        accent_color: '',
-        surface_color: '',
-    },
 })
 
 const form = reactive<any>(createBlankForm())
@@ -419,23 +524,12 @@ const dirtyHint = computed(
     () => !loading.value && !saving.value && baseline.value !== '' && JSON.stringify(form) !== baseline.value,
 )
 
-const themePrimary = computed(() => form.theme?.primary_color?.trim() || '#2563eb')
-const themeAccent = computed(() => form.theme?.accent_color?.trim() || '#16a34a')
-const themeSurface = computed(() => form.theme?.surface_color?.trim() || '#ffffff')
-
 const hasAnnouncementPreview = computed(
     () => !!(form.announcement?.title?.[activeLocale.value] || form.announcement?.content?.[activeLocale.value]),
 )
-const announcementPreviewClass = computed(() => {
-    switch (form.announcement?.type) {
-        case 'success':
-            return 'border-success/40 bg-success/10 text-success'
-        case 'warning':
-            return 'border-amber-400/50 bg-amber-50 text-amber-700 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-400'
-        default:
-            return 'border-primary/30 bg-primary/5 text-foreground'
-    }
-})
+const announcementToneView = computed(
+    () => announcementTypeOptions.find((item) => item.value === form.announcement?.type) || announcementTypeOptions[0]!,
+)
 const announcementPreviewHtml = computed(() => {
     const raw = form.announcement?.content?.[activeLocale.value] || ''
     return DOMPurify.sanitize(processHtmlForDisplay(String(raw)), {
@@ -474,11 +568,6 @@ const assignForm = (config?: ResellerSiteConfigData) => {
         next.nav_config = {
             builtin: { blog: true, notice: true, about: true, ...(config.nav_config?.builtin || {}) },
             custom_items: normalizeFooterLinksForForm(config.nav_config?.custom_items),
-        }
-        next.theme = {
-            primary_color: config.theme?.primary_color || '',
-            accent_color: config.theme?.accent_color || '',
-            surface_color: config.theme?.surface_color || '',
         }
     }
     Object.assign(form, next)

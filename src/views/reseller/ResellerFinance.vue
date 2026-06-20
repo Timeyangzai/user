@@ -18,7 +18,7 @@
 
     <template v-else>
       <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <ResellerMetricCard :label="t('personalCenter.reseller.primaryAvailable')" :value="primaryBalanceText" :icon="Banknote" tone="success" />
+        <ResellerMetricCard :label="t('personalCenter.reseller.primaryAvailable')" :value="primaryBalanceText" :hint="primaryBalanceHint" :icon="Banknote" tone="success" />
         <ResellerMetricCard :label="t('personalCenter.reseller.currencyCount')" :value="balances.length" :icon="Wallet" tone="info" />
         <ResellerMetricCard :label="t('personalCenter.reseller.settlementStatus')" :value="statusText" :icon="BadgeCheck" tone="accent" />
       </div>
@@ -82,16 +82,23 @@ import {
   RESELLER_BALANCE_STATUS_NORMAL,
 } from '../../constants/reseller'
 import { formatResellerConsoleAmount, resellerCurrencyColor } from '../../utils/resellerConsole'
-import { getResellerFinanceStatusView } from '../../utils/resellerFinance'
+import { getResellerFinanceStatusView, pickPrimaryResellerBalance } from '../../utils/resellerFinance'
 
 const { t } = useI18n()
 const { dashboardLoading, balanceLoading, dashboard, balances, loadDashboard, loadBalances } = useResellerFinance()
 
-const primaryBalanceText = computed(() => {
-  const first = balances.value[0] || dashboard.value?.balances?.[0]
-  if (!first) return '-'
-  return formatResellerConsoleAmount(first.available_amount, first.currency)
-})
+const balanceList = computed(() => (balances.value.length ? balances.value : dashboard.value?.balances || []))
+const primaryBalance = computed(() => pickPrimaryResellerBalance(balanceList.value))
+const primaryBalanceText = computed(() =>
+  primaryBalance.value
+    ? formatResellerConsoleAmount(primaryBalance.value.available_amount, primaryBalance.value.currency)
+    : '-',
+)
+const primaryBalanceHint = computed(() =>
+  balanceList.value.length > 1
+    ? t('personalCenter.reseller.moreCurrencies', { count: balanceList.value.length - 1 })
+    : '',
+)
 
 const statusView = computed(() => getResellerFinanceStatusView(dashboard.value?.profile))
 const statusText = computed(() => t(`personalCenter.reseller.${statusView.value.namespace}.${statusView.value.key}`))

@@ -47,6 +47,23 @@ const ledgerTypeKeyMap: Record<string, string> = {
   withdraw_paid: 'withdrawPaid',
 }
 
+type ResellerBalanceLike = {
+  currency: string
+  available_amount: string
+}
+
+/**
+ * 从多币种余额中挑选用于"主要可用余额"展示的账户。
+ * 系统没有"主结算币种"概念，按可用余额最大者展示，避免直接取数组第 0 个造成的误导。
+ */
+export const pickPrimaryResellerBalance = <T extends ResellerBalanceLike>(balances?: T[] | null): T | null => {
+  const list = (balances || []).filter(Boolean)
+  if (list.length === 0) return null
+  return list.reduce((best, cur) =>
+    (Number(cur.available_amount) || 0) > (Number(best.available_amount) || 0) ? cur : best,
+  )
+}
+
 export const isResellerWithdrawEnabled = (dashboard?: ResellerWithdrawState | null) => dashboard?.withdraw_enabled === true
 
 export const getResellerWithdrawDisabledReasonKey = (reason?: string) => {

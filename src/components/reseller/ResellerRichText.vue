@@ -1,6 +1,6 @@
 <template>
-  <div class="overflow-hidden rounded-xl border border-input bg-background">
-    <div v-if="editor" class="flex flex-wrap items-center gap-0.5 border-b border-border bg-muted/40 p-1.5">
+  <div class="overflow-hidden rounded-xl border bg-background shadow-sm">
+    <div v-if="editor" class="flex flex-wrap items-center gap-1 border-b bg-muted/40 p-2">
       <button type="button" :class="btnClass(editor.isActive('bold'))" :title="t('personalCenter.reseller.siteConfig.editor.bold')" @click="editor.chain().focus().toggleBold().run()">
         <Bold class="h-4 w-4" />
       </button>
@@ -114,8 +114,8 @@ const uploadError = ref('')
 
 const btnClass = (active: boolean) =>
     [
-        'inline-flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:cursor-not-allowed disabled:opacity-30',
-        active ? 'bg-muted text-foreground' : '',
+        'inline-flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-background hover:text-foreground disabled:cursor-not-allowed disabled:opacity-30',
+        active ? 'bg-background text-foreground shadow-sm' : '',
     ].join(' ')
 
 const editor = useEditor({
@@ -132,7 +132,7 @@ const editor = useEditor({
     ],
     editorProps: {
         attributes: {
-            class: 'prose prose-sm dark:prose-invert max-w-none focus:outline-none min-h-[140px] px-3 py-2.5 text-foreground',
+            class: 'prose prose-sm dark:prose-invert max-w-none focus:outline-none min-h-[180px] px-4 py-3 text-foreground',
         },
     },
     onUpdate: ({ editor }) => {

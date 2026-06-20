@@ -36,7 +36,7 @@
           <div class="rounded-2xl border bg-card p-4 shadow-sm lg:sticky lg:top-24">
             <div class="hidden flex-col gap-0.5 lg:flex">
               <button
-                v-for="item in sectionItems"
+                v-for="item in visibleSectionItems"
                 :key="item.key"
                 type="button"
                 @click="switchSection(item.key)"
@@ -57,7 +57,7 @@
             <div class="lg:hidden">
               <div class="flex gap-1.5 overflow-x-auto pb-1">
                 <button
-                  v-for="item in sectionItems"
+                  v-for="item in visibleSectionItems"
                   :key="item.key"
                   type="button"
                   @click="switchSection(item.key)"
@@ -267,7 +267,7 @@
           <OrdersPanel v-else-if="currentSection === 'orders'" />
           <WalletPanel v-else-if="currentSection === 'wallet'" />
           <AffiliatePanel v-else-if="currentSection === 'affiliate'" />
-          <div v-else-if="currentSection === 'reseller'" class="rounded-2xl border bg-card p-6 shadow-sm">
+          <div v-else-if="currentSection === 'reseller' && canAccessResellerConsole" class="rounded-2xl border bg-card p-6 shadow-sm">
             <h2 class="text-xl font-bold text-foreground">{{ t('resellerConsole.title') }}</h2>
             <p class="mt-2 text-sm text-muted-foreground">{{ t('resellerConsole.dashboard.description') }}</p>
             <Button as-child class="mt-5">
@@ -292,6 +292,7 @@ import { getImageUrl } from '../utils/image'
 import StatCard from '../components/shared/StatCard.vue'
 import { orderStatusLabel, orderStatusVariant } from '../utils/status'
 import { pageAlertVariant, pageAlertToneClass, type PageAlert } from '../utils/alerts'
+import { useAppStore } from '../stores/app'
 import { useUserProfileStore } from '../stores/userProfile'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
@@ -312,6 +313,7 @@ const props = withDefaults(defineProps<{ section?: PersonalSection }>(), {
 
 const router = useRouter()
 const { t, locale } = useI18n()
+const appStore = useAppStore()
 const userProfileStore = useUserProfileStore()
 
 const sectionItems: Array<{ key: PersonalSection; label: string; icon: Component }> = [
@@ -338,7 +340,16 @@ const sectionRouteMap: Record<PersonalSection, string> = {
   api: '/me/api',
 }
 
-const currentSection = computed<PersonalSection>(() => props.section)
+const canAccessResellerConsole = computed(() => appStore.canAccessResellerConsole)
+const visibleSectionItems = computed(() => {
+  return sectionItems.filter((item) => item.key !== 'reseller' || canAccessResellerConsole.value)
+})
+const currentSection = computed<PersonalSection>(() => {
+  if (props.section === 'reseller' && !canAccessResellerConsole.value) {
+    return 'overview'
+  }
+  return props.section
+})
 const globalAlert = ref<PageAlert | null>(null)
 
 const displayInitial = computed(() => {

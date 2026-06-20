@@ -14,7 +14,7 @@
         <h2 class="text-xl font-bold text-foreground">{{ t('personalCenter.reseller.productSettings.title') }}</h2>
         <p class="mt-1 text-sm text-muted-foreground">{{ t('personalCenter.reseller.productSettings.subtitle') }}</p>
       </div>
-      <Button type="button" variant="outline" size="sm" :disabled="loading" @click="loadRows">
+      <Button type="button" variant="outline" size="sm" :disabled="loading" @click="loadRows(pagination.page)">
         {{ t('orders.filters.refresh') }}
       </Button>
     </div>
@@ -24,9 +24,9 @@
         v-model.trim="filters.keyword"
         type="text"
         :placeholder="t('personalCenter.reseller.productSettings.searchPlaceholder')"
-        @keyup.enter="loadRows"
+        @keyup.enter="searchRows"
       />
-      <Button type="button" :disabled="loading" @click="loadRows">
+      <Button type="button" :disabled="loading" @click="searchRows">
         {{ t('orders.filters.search') }}
       </Button>
     </div>
@@ -40,15 +40,21 @@
     </div>
 
     <div v-else class="space-y-3">
-      <div v-for="row in rows" :key="row.product.id" class="rounded-xl border bg-muted/30 p-4">
+      <div
+        v-for="row in rows"
+        :id="`reseller-product-row-${row.product.id}`"
+        :key="row.product.id"
+        class="rounded-xl border bg-card p-4 shadow-sm"
+      >
         <div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
           <div class="min-w-0">
-            <div class="truncate font-bold text-foreground">{{ getProductTitle(row.product.title) }}</div>
-            <div class="mt-1 break-all text-xs text-muted-foreground">#{{ row.product.id }} / {{ row.product.slug }}</div>
-            <div class="mt-2 flex flex-wrap gap-2 text-sm text-muted-foreground">
-              <span>{{ t('personalCenter.reseller.productSettings.basePrice') }} {{ row.product.price_amount }}</span>
-              <span>{{ t('personalCenter.reseller.productSettings.effectivePrice') }} {{ summarizeEffectivePrice(row.product_setting) }}</span>
+            <div class="flex flex-wrap items-center gap-2">
+              <div class="truncate font-bold text-foreground">{{ getProductTitle(row.product.title) }}</div>
+              <Badge :variant="countListedSkus(row) > 0 ? 'success' : 'neutral'" size="xs">
+                {{ countListedSkus(row) > 0 ? t('personalCenter.reseller.productSettings.displayed') : t('personalCenter.reseller.productSettings.hidden') }}
+              </Badge>
             </div>
+            <div class="mt-1 break-all text-xs text-muted-foreground">#{{ row.product.id }} / {{ row.product.slug }}</div>
           </div>
           <Button
             type="button"
@@ -59,50 +65,86 @@
             {{ t('personalCenter.reseller.productSettings.edit') }}
           </Button>
         </div>
+        <div class="mt-4 grid gap-3 sm:grid-cols-3">
+          <div class="rounded-lg border bg-muted/30 px-3 py-2">
+            <div class="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">{{ t('personalCenter.reseller.productSettings.basePrice') }}</div>
+            <div class="mt-1 font-mono text-sm font-bold text-foreground">{{ row.product.price_amount }}</div>
+          </div>
+          <div class="rounded-lg border border-primary/20 bg-primary/5 px-3 py-2">
+            <div class="text-[11px] font-semibold uppercase tracking-[0.12em] text-primary">{{ t('personalCenter.reseller.productSettings.effectivePrice') }}</div>
+            <div class="mt-1 font-mono text-sm font-bold text-primary">{{ summarizeProductEffectivePrice(row) }}</div>
+          </div>
+          <div class="rounded-lg border bg-muted/30 px-3 py-2">
+            <div class="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">{{ t('personalCenter.reseller.productSettings.listedSkuCount') }}</div>
+            <div class="mt-1 font-mono text-sm font-bold text-foreground">{{ countListedSkus(row) }} / {{ countActiveSkus(row) }}</div>
+          </div>
+        </div>
+
+        <div
+          v-if="editing?.product.id === row.product.id"
+          data-testid="reseller-product-editor"
+          class="mt-4 rounded-xl border bg-muted/30 p-4"
+        >
+          <div class="mb-4 flex items-center justify-between gap-3">
+            <div class="min-w-0">
+              <h3 class="truncate text-base font-bold text-foreground">{{ t('personalCenter.reseller.productSettings.editorTitle') }}</h3>
+              <div class="mt-1 flex flex-wrap items-center gap-2">
+                <span class="truncate text-xs text-muted-foreground">{{ getProductTitle(editing.product.title) }}</span>
+                <Badge variant="accent" size="xs">{{ t('personalCenter.reseller.productSettings.effectivePrice') }} {{ summarizeProductEffectivePrice(editing) }}</Badge>
+              </div>
+            </div>
+            <Button type="button" variant="outline" size="sm" @click="editing = null">
+              {{ t('common.cancel') }}
+            </Button>
+          </div>
+
+          <div v-if="detailLoading" class="h-24 animate-pulse rounded-xl border bg-muted"></div>
+          <div v-else class="space-y-4">
+            <ResellerProductRuleEditor
+              v-model="productForm"
+              :label="t('personalCenter.reseller.productSettings.productLevelRule')"
+              :base-price="editing.product.price_amount"
+              :effective-price="summarizeEffectivePrice(editing.product_setting)"
+            />
+            <div v-for="sku in editing.skus" :key="sku.id" class="rounded-xl border bg-card p-3">
+              <ResellerProductRuleEditor
+                :model-value="skuFormFor(sku.id)"
+                :label="buildSkuLabel(sku)"
+                :base-price="sku.base_price_amount"
+                :effective-price="summarizeSkuEffectivePrice(sku)"
+                @update:model-value="updateSkuForm(sku.id, $event)"
+              />
+            </div>
+            <div class="flex flex-wrap gap-3">
+              <Button type="button" :disabled="saving" @click="saveEditing">
+                {{ saving ? t('personalCenter.reseller.productSettings.saving') : t('personalCenter.reseller.productSettings.save') }}
+              </Button>
+              <Button type="button" variant="outline" :disabled="saving" @click="resetProductRule">
+                {{ t('personalCenter.reseller.productSettings.resetProductRule') }}
+              </Button>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
-    <div v-if="editing" class="mt-6 rounded-xl border bg-muted/30 p-4">
-      <div class="mb-4 flex items-center justify-between gap-3">
-        <div class="min-w-0">
-          <h3 class="truncate text-base font-bold text-foreground">{{ t('personalCenter.reseller.productSettings.editorTitle') }}</h3>
-          <div class="mt-1 truncate text-xs text-muted-foreground">{{ getProductTitle(editing.product.title) }}</div>
-        </div>
-        <Button type="button" variant="outline" size="sm" @click="editing = null">
-          {{ t('common.cancel') }}
-        </Button>
-      </div>
-
-      <div v-if="detailLoading" class="h-24 animate-pulse rounded-xl border bg-muted"></div>
-      <div v-else class="space-y-4">
-        <ResellerProductRuleEditor
-          v-model="productForm"
-          :label="t('personalCenter.reseller.productSettings.productLevelRule')"
-          :base-price="editing.product.price_amount"
-        />
-        <div v-for="sku in editing.skus" :key="sku.id" class="rounded-xl border bg-card p-3">
-          <ResellerProductRuleEditor
-            :model-value="skuFormFor(sku.id)"
-            :label="buildSkuLabel(sku)"
-            :base-price="sku.base_price_amount"
-            @update:model-value="updateSkuForm(sku.id, $event)"
-          />
-        </div>
-        <div class="flex flex-wrap gap-3">
-          <Button type="button" :disabled="saving" @click="saveEditing">
-            {{ saving ? t('personalCenter.reseller.productSettings.saving') : t('personalCenter.reseller.productSettings.save') }}
-          </Button>
-          <Button type="button" variant="outline" :disabled="saving" @click="resetProductRule">
-            {{ t('personalCenter.reseller.productSettings.resetProductRule') }}
-          </Button>
-        </div>
-      </div>
+    <div v-if="!loading && pagination.total_page > 1" class="mt-5 flex flex-wrap items-center justify-center gap-3">
+      <Button type="button" variant="outline" size="sm" :disabled="pagination.page <= 1" @click="goPage(pagination.page - 1)">
+        {{ t('orders.prevPage') }}
+      </Button>
+      <span class="rounded-full border bg-card px-4 py-1.5 text-sm text-muted-foreground">
+        {{ t('orders.pageInfo', { page: pagination.page, total: pagination.total_page }) }}
+      </span>
+      <Button type="button" variant="outline" size="sm" :disabled="pagination.page >= pagination.total_page" @click="goPage(pagination.page + 1)">
+        {{ t('orders.nextPage') }}
+      </Button>
     </div>
+
   </Card>
 </template>
 
 <script setup lang="ts">
-import { onMounted, reactive, ref } from 'vue'
+import { nextTick, onMounted, reactive, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { resellerAPI } from '../../api/reseller'
 import type {
@@ -113,6 +155,7 @@ import type {
   ResellerProductSettingSKUData,
 } from '../../api/types'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -120,9 +163,15 @@ import { type PageAlert } from '../../utils/alerts'
 import { getLocalizedText } from '../../utils/resellerSiteConfig'
 import {
   buildResellerProductSettingPayload,
+  countActiveSkus,
+  countListedSkus,
+  isResellerProductSettingDetail,
+  normalizeResellerProductSettingsPagination,
   normalizeResellerProductSettingForm,
   summarizeEffectivePrice,
+  summarizeProductEffectivePrice,
 } from '../../utils/resellerProductSettings'
+import { formatSkuSpecValues } from '../../utils/sku'
 import ResellerProductRuleEditor from './ResellerProductRuleEditor.vue'
 
 withDefaults(defineProps<{ embedded?: boolean }>(), { embedded: false })
@@ -137,6 +186,7 @@ const editing = ref<ResellerProductSettingDetailData | null>(null)
 const panelAlert = ref<PageAlert | null>(null)
 const productForm = ref<ResellerProductSettingPayloadItem>(normalizeResellerProductSettingForm({ sku_id: 0 }))
 const skuForms = reactive<Record<number, ResellerProductSettingPayloadItem>>({})
+const pagination = reactive({ page: 1, page_size: 20, total: 0, total_page: 1 })
 
 const filters = reactive({
   keyword: '',
@@ -173,6 +223,14 @@ const applyDetailToEditor = (detail: ResellerProductSettingDetailData) => {
   editing.value = detail
 }
 
+const scrollProductRowIntoView = async (productID: number) => {
+  await nextTick()
+  document.getElementById(`reseller-product-row-${productID}`)?.scrollIntoView({
+    behavior: 'smooth',
+    block: 'nearest',
+  })
+}
+
 const skuFormFor = (skuID: number): ResellerProductSettingPayloadItem => {
   if (!skuForms[skuID]) {
     skuForms[skuID] = formFromSetting(undefined, skuID)
@@ -191,14 +249,15 @@ const showAlert = (level: PageAlert['level'], message: string) => {
 const getProductTitle = (title: ResellerProductSettingProductData['title']) =>
   getLocalizedText(title, String(locale.value))
 
-const loadRows = async () => {
+const loadRows = async (page = pagination.page) => {
   loading.value = true
   panelAlert.value = null
   try {
-    const params: Record<string, string> = {}
+    const params: Record<string, string | number> = { page, page_size: pagination.page_size }
     if (filters.keyword.trim()) params.keyword = filters.keyword.trim()
     const response = await resellerAPI.productSettings(params)
     rows.value = unwrapData<ResellerProductSettingDetailData[]>(response) || []
+    Object.assign(pagination, normalizeResellerProductSettingsPagination(response?.data?.pagination, pagination))
   } catch (err: any) {
     rows.value = []
     showAlert('error', err?.message || t('personalCenter.reseller.productSettings.loadFailed'))
@@ -207,18 +266,23 @@ const loadRows = async () => {
   }
 }
 
+const searchRows = () => loadRows(1)
+const goPage = (page: number) => loadRows(page)
+
 const openEditor = async (productID: number) => {
   detailLoading.value = true
   panelAlert.value = null
   const existing = rows.value.find((row) => row.product.id === productID)
   if (existing) {
     applyDetailToEditor(existing)
+    await scrollProductRowIntoView(productID)
   }
   try {
     const response = await resellerAPI.productSettingDetail(productID)
     const detail = unwrapData<ResellerProductSettingDetailData>(response)
     if (detail) {
       applyDetailToEditor(detail)
+      await scrollProductRowIntoView(productID)
     }
   } catch (err: any) {
     showAlert('error', err?.message || t('personalCenter.reseller.productSettings.loadFailed'))
@@ -228,12 +292,13 @@ const openEditor = async (productID: number) => {
 }
 
 const buildSkuLabel = (sku: ResellerProductSettingSKUData) => {
-  const spec = Object.values(sku.spec_values || {})
-    .map((value) => String(value).trim())
-    .filter(Boolean)
-    .join(' / ')
+  const spec = formatSkuSpecValues(sku.spec_values, String(locale.value))
   const fallback = sku.sku_code || `#${sku.id}`
   return `${t('personalCenter.reseller.productSettings.skuLevelRule')} · ${spec || fallback}`
+}
+
+const summarizeSkuEffectivePrice = (sku: ResellerProductSettingSKUData) => {
+  return String(sku.effective_price_amount || sku.setting?.effective_price_amount || '').trim() || '-'
 }
 
 const saveEditing = async () => {
@@ -250,7 +315,7 @@ const saveEditing = async () => {
     if (detail) {
       applyDetailToEditor(detail)
     }
-    await loadRows()
+    await loadRows(pagination.page)
     showAlert('success', t('personalCenter.reseller.productSettings.saveSuccess'))
   } catch (err: any) {
     showAlert('error', err?.message || t('personalCenter.reseller.productSettings.saveFailed'))
@@ -267,12 +332,12 @@ const resetProductRule = async () => {
     const productID = editing.value.product.id
     const response = await resellerAPI.resetProductSetting(productID, 0)
     const detail = unwrapData<ResellerProductSettingDetailData>(response)
-    if (detail) {
+    if (isResellerProductSettingDetail(detail)) {
       applyDetailToEditor(detail)
     } else {
       await openEditor(productID)
     }
-    await loadRows()
+    await loadRows(pagination.page)
     showAlert('success', t('personalCenter.reseller.productSettings.resetSuccess'))
   } catch (err: any) {
     showAlert('error', err?.message || t('personalCenter.reseller.productSettings.resetFailed'))
@@ -281,5 +346,5 @@ const resetProductRule = async () => {
   }
 }
 
-onMounted(loadRows)
+onMounted(() => loadRows(1))
 </script>

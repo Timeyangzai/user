@@ -215,7 +215,7 @@ const router = createRouter({
             path: '/me/reseller',
             name: 'personal-center-reseller',
             redirect: '/reseller',
-            meta: { requiresUserAuth: true }
+            meta: { requiresUserAuth: true, resellerConsole: true }
         },
         {
             path: '/reseller',
@@ -334,6 +334,8 @@ router.beforeEach(async (to, _from, next) => {
         if (!userAuthStore.isAuthenticated) {
             const redirect = encodeURIComponent(to.fullPath)
             next(`/auth/login?redirect=${redirect}`)
+        } else if (to.meta.resellerConsole && !appStore.canAccessResellerConsole) {
+            next('/me/orders')
         } else {
             next()
         }

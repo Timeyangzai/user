@@ -11,7 +11,6 @@ import {
 export type ResellerFinanceListParams = {
   page?: number
   page_size?: number
-  currency?: string
   type?: string
   status?: string
   order_id?: number

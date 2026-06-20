@@ -27,6 +27,13 @@ export const getLocalizedText = (
     return ''
 }
 
+export const hasLocalizedText = (
+    value?: Partial<LocalizedText> | Record<string, unknown> | null,
+) => {
+    if (!value) return false
+    return Object.values(value).some((item) => typeof item === 'string' && item.trim() !== '')
+}
+
 export const normalizeLocalizedTextForForm = (
     value?: Partial<LocalizedText> | Record<string, unknown> | null,
 ): LocalizedText => ({
@@ -48,3 +55,20 @@ export const normalizeFooterLinksForForm = (
 export const canEditResellerSiteConfig = (
     snapshot?: { opened?: boolean; can_edit?: boolean } | null,
 ) => snapshot?.opened === true && snapshot?.can_edit === true
+
+export const isResellerSiteSeoConfigured = (
+    seo?: {
+        title?: Partial<LocalizedText> | Record<string, unknown> | null
+        keywords?: Partial<LocalizedText> | Record<string, unknown> | null
+        description?: Partial<LocalizedText> | Record<string, unknown> | null
+        default_og_image?: string | null
+    } | null,
+) => {
+    if (!seo) return false
+    return (
+        hasLocalizedText(seo.title) ||
+        hasLocalizedText(seo.keywords) ||
+        hasLocalizedText(seo.description) ||
+        String(seo.default_og_image || '').trim() !== ''
+    )
+}

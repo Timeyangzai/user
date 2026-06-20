@@ -3,6 +3,8 @@ import assert from 'node:assert/strict'
 import {
   buildResellerProductSettingPayload,
   getResellerPricingModeLabelKey,
+  isResellerProductSettingDetail,
+  normalizeResellerProductSettingsPagination,
   normalizeResellerProductSettingForm,
   summarizeEffectivePrice,
 } from '../src/utils/resellerProductSettings.ts'
@@ -41,4 +43,26 @@ test('payload builder trims empty rows by explicit sku scope', () => {
 test('effective price summary prefers explicit effective price', () => {
   assert.equal(summarizeEffectivePrice({ effective_price_amount: '128.00', pricing_mode: 'fixed_price' }), '128.00')
   assert.equal(summarizeEffectivePrice(null), '-')
+})
+
+test('reset response is not treated as product setting detail', () => {
+  assert.equal(isResellerProductSettingDetail({ deleted: true }), false)
+  assert.equal(
+    isResellerProductSettingDetail({
+      product: { id: 9, title: { 'zh-CN': '商品' }, slug: 'demo', price_amount: '10.00', is_active: true },
+      skus: [],
+    }),
+    true,
+  )
+})
+
+test('product settings pagination normalizes API pagination payloads', () => {
+  assert.deepEqual(
+    normalizeResellerProductSettingsPagination({ page: '2', page_size: '30', total: '61', total_page: '3' }),
+    { page: 2, page_size: 30, total: 61, total_page: 3 },
+  )
+  assert.deepEqual(
+    normalizeResellerProductSettingsPagination(null, { page: 4, page_size: 20, total: 80, total_page: 4 }),
+    { page: 4, page_size: 20, total: 80, total_page: 4 },
+  )
 })

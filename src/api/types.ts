@@ -269,11 +269,6 @@ export interface ResellerSiteConfigPayload {
         builtin: Record<string, boolean>
         custom_items: Array<{ name: ResellerLocalizedText; url: string }>
     }
-    theme?: {
-        primary_color?: string
-        accent_color?: string
-        surface_color?: string
-    }
 }
 
 export interface ResellerSiteConfigData extends ResellerSiteConfigPayload {
@@ -307,7 +302,7 @@ export interface ResellerProductSettingData {
 export interface ResellerProductSettingSKUData {
     id: number
     sku_code: string
-    spec_values: Record<string, string>
+    spec_values: Record<string, unknown>
     base_price_amount: string
     is_active: boolean
     setting?: ResellerProductSettingData
@@ -389,8 +384,6 @@ export interface ResellerOrderListParams {
     page_size?: number
     status?: string
     order_no?: string
-    domain?: string
-    currency?: string
     created_from?: string
     created_to?: string
     paid_from?: string
@@ -416,7 +409,7 @@ export interface ResellerOrderData {
 
 export interface ResellerOrderItemData {
     title: Record<string, string>
-    sku_snapshot: Record<string, string>
+    sku_snapshot: Record<string, unknown>
     quantity: number
     unit_price: string
     total_price: string

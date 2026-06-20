@@ -18,7 +18,7 @@
       </template>
     </ResellerSectionHeader>
 
-    <ResellerPageState v-if="profileLoading || dashboardLoading || ordersLoading" loading :title="t('resellerConsole.common.loading')" />
+    <ResellerPageState v-if="profileLoading || dashboardLoading || ordersLoading || setupLoading" loading :title="t('resellerConsole.common.loading')" />
 
     <template v-else-if="profileState.profileStatus !== 'active'">
       <Card class="overflow-hidden p-6 sm:p-8">
@@ -60,9 +60,54 @@
       <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <ResellerMetricCard :label="t('resellerConsole.dashboard.orderTotal')" :value="stats?.total || 0" :icon="ShoppingBag" tone="accent" />
         <ResellerMetricCard :label="t('resellerConsole.orders.paidOrders')" :value="paidCount" :hint="paidRatioText" :icon="CheckCircle2" tone="success" />
-        <ResellerMetricCard :label="t('personalCenter.reseller.primaryAvailable')" :value="primaryBalanceText" :icon="Banknote" tone="info" />
+        <ResellerMetricCard :label="t('personalCenter.reseller.primaryAvailable')" :value="primaryBalanceText" :hint="primaryBalanceHint" :icon="Banknote" tone="info" />
         <ResellerMetricCard :label="t('resellerConsole.dashboard.domainCount')" :value="profileSnapshot?.domains?.length || 0" :icon="Globe" tone="neutral" />
       </div>
+
+      <!-- 开店清单 -->
+      <Card class="p-5">
+        <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h3 class="text-sm font-bold text-foreground">{{ t('resellerConsole.dashboard.setup.title') }}</h3>
+            <p class="mt-1 text-sm text-muted-foreground">
+              {{ allSetupDone ? t('resellerConsole.dashboard.setup.allDone') : t('resellerConsole.dashboard.setup.description') }}
+            </p>
+          </div>
+          <div class="flex items-center gap-2 sm:shrink-0">
+            <ResellerStatusBadge :label="`${completedSetupCount}/${setupChecklist.length}`" :tone="allSetupDone ? 'success' : 'accent'" />
+            <Button
+              v-if="allSetupDone"
+              type="button"
+              variant="ghost"
+              size="sm"
+              class="gap-1"
+              @click="setupCollapsed = !setupCollapsed"
+            >
+              {{ setupCollapsed ? t('resellerConsole.dashboard.setup.expand') : t('resellerConsole.dashboard.setup.collapse') }}
+              <ChevronDown class="h-4 w-4 transition-transform" :class="setupCollapsed ? '' : 'rotate-180'" />
+            </Button>
+          </div>
+        </div>
+        <div v-show="!setupCollapsed" class="mt-4 grid gap-3 lg:grid-cols-5">
+          <RouterLink
+            v-for="item in setupChecklist"
+            :key="item.to"
+            :to="item.to"
+            class="group flex min-h-[124px] flex-col justify-between rounded-xl border bg-card p-4 transition-shadow hover:shadow-md"
+          >
+            <div class="flex items-start justify-between gap-3">
+              <span class="flex h-9 w-9 items-center justify-center rounded-xl" :class="item.done ? 'bg-success/10 text-success' : 'bg-primary/10 text-primary'">
+                <component :is="item.icon" class="h-5 w-5" />
+              </span>
+              <ResellerStatusBadge :label="item.done ? t('resellerConsole.dashboard.setup.ready') : t('resellerConsole.dashboard.setup.pending')" :tone="item.done ? 'success' : 'warning'" />
+            </div>
+            <div>
+              <div class="mt-4 text-sm font-semibold text-foreground">{{ item.label }}</div>
+              <p class="mt-1 text-xs text-muted-foreground">{{ item.description }}</p>
+            </div>
+          </RouterLink>
+        </div>
+      </Card>
 
       <!-- 可视化:订单状态分布 + 多币种余额 -->
       <div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
@@ -173,14 +218,16 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import {
   Banknote,
   CheckCircle2,
+  ChevronDown,
   ChevronRight,
   ExternalLink,
   Globe,
+  Palette,
   Rocket,
   RotateCw,
   Settings,
@@ -191,6 +238,8 @@ import {
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { resellerAPI } from '../../api'
+import type { ResellerDomainData, ResellerSiteConfigSnapshotData } from '../../api/types'
 import ResellerDataTable from '../../components/reseller-console/ResellerDataTable.vue'
 import ResellerDonut from '../../components/reseller-console/ResellerDonut.vue'
 import ResellerMetricCard from '../../components/reseller-console/ResellerMetricCard.vue'
@@ -202,22 +251,35 @@ import { useResellerFinance } from '../../composables/reseller/useResellerFinanc
 import { useResellerOrders } from '../../composables/reseller/useResellerOrders'
 import { useResellerProfile } from '../../composables/reseller/useResellerProfile'
 import {
+  RESELLER_DOMAIN_STATUS_ACTIVE,
+  RESELLER_DOMAIN_VERIFICATION_VERIFIED,
+} from '../../constants/reseller'
+import {
   formatResellerConsoleAmount,
   formatResellerConsoleDate,
   resellerCurrencyColor,
   resellerOrderStatusColor,
   resellerOrderStatusTone,
 } from '../../utils/resellerConsole'
+import { pickPrimaryResellerBalance } from '../../utils/resellerFinance'
 
 const { t, te } = useI18n()
 const { loading: profileLoading, snapshot: profileSnapshot, state: profileState, load: loadProfile } = useResellerProfile()
 const finance = useResellerFinance()
 const { dashboardLoading, dashboard, balances, loadDashboard, loadBalances } = finance
 const { loading: ordersLoading, rows: recentOrders, stats, load: loadOrders, loadStats } = useResellerOrders()
+const setupLoading = ref(false)
+const siteSnapshot = ref<ResellerSiteConfigSnapshotData | null>(null)
+const configuredProductCount = ref(0)
+
+const isActiveVerifiedDomain = (domain: ResellerDomainData) =>
+  domain.status === RESELLER_DOMAIN_STATUS_ACTIVE &&
+  domain.verification_status === RESELLER_DOMAIN_VERIFICATION_VERIFIED
 
 const primaryDomainObj = computed(() => {
   const domains = profileSnapshot.value?.domains || []
-  return domains.find((d) => d.is_primary) || domains[0] || null
+  const activeDomains = domains.filter(isActiveVerifiedDomain)
+  return activeDomains.find((d) => d.is_primary) || activeDomains[0] || null
 })
 const primaryDomain = computed(() => primaryDomainObj.value?.domain || '')
 const primaryDomainUrl = computed(() => (primaryDomain.value ? `https://${primaryDomain.value}` : ''))
@@ -241,11 +303,18 @@ const paidRatioText = computed(() => {
   return `${((paidCount.value / total) * 100).toFixed(0)}%`
 })
 
-const primaryBalanceText = computed(() => {
-  const first = balances.value[0] || dashboard.value?.balances?.[0]
-  if (!first) return '-'
-  return formatResellerConsoleAmount(first.available_amount, first.currency)
-})
+const balanceList = computed(() => (balances.value.length ? balances.value : dashboard.value?.balances || []))
+const primaryBalance = computed(() => pickPrimaryResellerBalance(balanceList.value))
+const primaryBalanceText = computed(() =>
+  primaryBalance.value
+    ? formatResellerConsoleAmount(primaryBalance.value.available_amount, primaryBalance.value.currency)
+    : '-',
+)
+const primaryBalanceHint = computed(() =>
+  balanceList.value.length > 1
+    ? t('personalCenter.reseller.moreCurrencies', { count: balanceList.value.length - 1 })
+    : '',
+)
 
 const statusSegments = computed(() => {
   const byStatus = stats.value?.by_status || {}
@@ -260,12 +329,61 @@ const balanceSegments = computed(() =>
     .filter((s) => s.value > 0),
 )
 
+const siteBrandConfigured = computed(() => {
+  const cfg = siteSnapshot.value?.config
+  return Boolean(cfg?.site_name || cfg?.logo || cfg?.favicon)
+})
+
 const quickActions = computed(() => [
   { to: '/reseller/withdraws', label: t('resellerConsole.nav.withdraws'), icon: Upload },
   { to: '/reseller/domains', label: t('resellerConsole.nav.domains'), icon: Globe },
   { to: '/reseller/products', label: t('resellerConsole.nav.products'), icon: Tag },
   { to: '/reseller/site', label: t('resellerConsole.nav.site'), icon: Settings },
 ])
+
+const setupChecklist = computed(() => [
+  {
+    to: '/reseller/apply',
+    label: t('resellerConsole.dashboard.setup.profileEnabled'),
+    description: settlementText.value,
+    icon: CheckCircle2,
+    done: profileState.value.profileStatus === 'active',
+  },
+  {
+    to: '/reseller/domains',
+    label: t('resellerConsole.dashboard.setup.primaryDomain'),
+    description: primaryDomain.value || t('resellerConsole.dashboard.setup.primaryDomainEmpty'),
+    icon: Globe,
+    done: Boolean(primaryDomain.value),
+  },
+  {
+    to: '/reseller/site',
+    label: t('resellerConsole.dashboard.setup.siteBrand'),
+    description: t('resellerConsole.dashboard.setup.siteBrandDescription'),
+    icon: Palette,
+    done: siteBrandConfigured.value,
+  },
+  {
+    to: '/reseller/products',
+    label: t('resellerConsole.dashboard.setup.productRules'),
+    description: t('resellerConsole.dashboard.setup.productRulesDescription'),
+    icon: Tag,
+    done: configuredProductCount.value > 0,
+  },
+  {
+    to: '/reseller/orders',
+    label: t('resellerConsole.dashboard.setup.firstOrder'),
+    description: stats.value?.total
+      ? t('resellerConsole.dashboard.setup.firstOrderCount', { count: stats.value.total })
+      : t('resellerConsole.dashboard.setup.firstOrderDescription'),
+    icon: ShoppingBag,
+    done: (stats.value?.total || 0) > 0,
+  },
+])
+
+const completedSetupCount = computed(() => setupChecklist.value.filter((item) => item.done).length)
+const allSetupDone = computed(() => setupChecklist.value.length > 0 && completedSetupCount.value === setupChecklist.value.length)
+const setupCollapsed = ref(false)
 
 const statusLabel = (status?: string) => {
   if (!status) return '-'
@@ -274,8 +392,25 @@ const statusLabel = (status?: string) => {
 }
 const statusTone = (status?: string) => resellerOrderStatusTone(status) as ResellerBadgeTone
 
+const loadSetupState = async () => {
+  setupLoading.value = true
+  try {
+    const [siteResponse, productResponse] = await Promise.all([
+      resellerAPI.siteConfig(),
+      resellerAPI.productSettings({ configured: 'configured', page: 1, page_size: 1 }),
+    ])
+    siteSnapshot.value = siteResponse.data.data || null
+    configuredProductCount.value = Number(productResponse.data.pagination?.total || 0)
+  } finally {
+    setupLoading.value = false
+  }
+}
+
 const initialize = async () => {
-  await Promise.all([loadProfile(), loadDashboard(), loadBalances(), loadStats(), loadOrders({ page: 1, page_size: 5 })])
+  await loadProfile()
+  if (profileState.value.profileStatus !== 'active') return
+  await Promise.all([loadDashboard(), loadBalances(), loadStats(), loadOrders({ page: 1, page_size: 5 }), loadSetupState()])
+  setupCollapsed.value = allSetupDone.value
 }
 
 onMounted(initialize)

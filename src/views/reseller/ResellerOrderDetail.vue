@@ -63,7 +63,7 @@
               <TableRow v-for="(item, index) in detail.items" :key="index">
                 <TableCell class="px-4 py-3 text-sm text-foreground">
                   <div class="font-semibold">{{ localized(item.title) }}</div>
-                  <div class="mt-1 text-xs text-muted-foreground">{{ skuText(item.sku_snapshot) }}</div>
+                  <div class="mt-1 text-xs text-muted-foreground">{{ skuText(item) }}</div>
                 </TableCell>
                 <TableCell class="px-4 py-3 text-right font-mono text-xs">{{ item.quantity }}</TableCell>
                 <TableCell class="px-4 py-3 text-right font-mono text-xs">{{ formatResellerConsoleAmount(item.unit_price, detail.currency) }}</TableCell>
@@ -79,7 +79,7 @@
               <template #header>
                 <div class="min-w-0">
                   <div class="truncate text-sm font-semibold text-foreground">{{ localized(item.title) }}</div>
-                  <div class="mt-0.5 truncate text-xs text-muted-foreground">{{ skuText(item.sku_snapshot) }}</div>
+                  <div class="mt-0.5 truncate text-xs text-muted-foreground">{{ skuText(item) }}</div>
                 </div>
               </template>
               <div>
@@ -172,6 +172,7 @@ import ResellerRecordCard from '../../components/reseller-console/ResellerRecord
 import ResellerSectionHeader from '../../components/reseller-console/ResellerSectionHeader.vue'
 import ResellerStatusBadge, { type ResellerBadgeTone } from '../../components/reseller-console/ResellerStatusBadge.vue'
 import { useResellerOrders } from '../../composables/reseller/useResellerOrders'
+import { formatResellerOrderItemSkuText } from '../../utils/resellerOrderDisplay'
 import {
   formatResellerConsoleAmount,
   formatResellerConsoleDate,
@@ -218,10 +219,10 @@ const localized = (value?: Record<string, string>) => {
   return value[loc] || value['zh-CN'] || value['zh-TW'] || value['en-US'] || Object.values(value)[0] || '-'
 }
 
-const skuText = (value?: Record<string, string>) => {
-  if (!value || Object.keys(value).length === 0) return '-'
-  return Object.entries(value).map(([key, val]) => `${key}: ${val}`).join(' / ')
-}
+const skuText = (item: unknown) => formatResellerOrderItemSkuText(item, {
+  locale: locale.value as string,
+  fallback: t('productDetail.skuFallback'),
+})
 
 onMounted(() => {
   if (orderNo.value) {
