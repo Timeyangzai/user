@@ -158,7 +158,7 @@ const year = new Date().getFullYear()
 
 const brandName = computed(() => String(appStore.config?.brand?.site_name || '').trim() || 'D&J Studio')
 const brandLogo = computed(() => {
-  const raw = String(appStore.config?.brand?.site_logo || '').trim()
+  const raw = String(appStore.config?.brand?.site_logo || appStore.config?.brand?.site_icon || '').trim()
   return raw ? getImageUrl(raw) : ''
 })
 const brandDescription = computed(() => {
