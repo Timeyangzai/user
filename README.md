@@ -1,35 +1,37 @@
-# Dujiao-Next User Web
+# Mingyang Storefront
 
-Dujiao-Next User Web is the customer-facing frontend for browsing products, placing orders, and completing payments.
+名扬科技商城用户端，基于上游开源项目进行二次开发。
 
-## Tech Stack
-
-- Vue 3
-- TypeScript
-- Vite
-- Tailwind CSS
-- Pinia
-
-## What This App Does
-
-- Product listing and product detail pages
-- Checkout flow for member and guest users
-- Payment result and order query pages
-- User account center and order history
-
-## Quick Start
+## Development
 
 ```bash
-npm install
-npm run dev
+pnpm install --frozen-lockfile
+pnpm dev
 ```
 
-Build for production:
+Production build:
 
 ```bash
-npm run build
+pnpm build
 ```
 
-## Online Documentation
+## Container Image
 
-- https://dujiao-next.com
+Pushes to `main` automatically publish:
+
+```text
+ghcr.io/timeyangzai/mingyang-shop-user:latest
+```
+
+## Upstream
+
+- Upstream repository: https://github.com/dujiao-next/user
+- License: GNU General Public License v3.0
+
+Update this fork with:
+
+```bash
+git fetch upstream
+git merge upstream/main
+git push origin main
+```
