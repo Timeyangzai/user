@@ -147,7 +147,7 @@ const brandInitial = computed(() => {
 })
 
 const brandLogo = computed(() => {
-  const raw = String(config.value?.brand?.site_logo || '').trim()
+  const raw = String(config.value?.brand?.site_logo || config.value?.brand?.site_icon || '').trim()
   return raw ? getImageUrl(raw) : ''
 })
 

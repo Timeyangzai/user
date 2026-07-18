@@ -232,7 +232,7 @@ const brandSiteName = computed(() => {
 })
 
 const brandLogo = computed(() => {
-  const raw = String(appStore.config?.brand?.site_logo || '').trim()
+  const raw = String(appStore.config?.brand?.site_logo || appStore.config?.brand?.site_icon || '').trim()
   return raw ? getImageUrl(raw) : ''
 })
 

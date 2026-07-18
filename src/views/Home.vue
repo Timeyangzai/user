@@ -163,6 +163,41 @@
 
     <!-- ==================== CARD MODE (default) ==================== -->
     <template v-else>
+    <section v-if="!showHeroSection" class="relative z-10 border-b bg-card pt-24">
+      <div class="container mx-auto grid min-h-[300px] items-center gap-8 px-4 py-10 md:min-h-[340px] md:grid-cols-[minmax(0,1fr)_18rem] md:py-12 lg:grid-cols-[minmax(0,1fr)_22rem]">
+        <div class="max-w-3xl">
+          <div class="mb-5 inline-flex items-center gap-2 text-sm font-semibold text-primary">
+            <ShoppingBag class="h-4 w-4" />
+            <span>{{ t('home.hero.badge') }}</span>
+          </div>
+          <h1 class="text-4xl font-bold text-foreground md:text-5xl">{{ brandSiteName }}</h1>
+          <p class="mt-5 max-w-2xl text-base leading-7 text-muted-foreground md:text-lg">
+            {{ brandDescription }}
+          </p>
+          <div class="mt-7 flex flex-wrap items-center gap-3">
+            <router-link
+              to="/products"
+              class="inline-flex min-h-11 items-center gap-2 rounded-md bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary-hover"
+            >
+              {{ t('home.hero.cta') }}
+              <ArrowRight class="h-4 w-4" />
+            </router-link>
+            <router-link
+              to="/guest/orders"
+              class="inline-flex min-h-11 items-center gap-2 rounded-md border bg-background px-5 py-2.5 text-sm font-semibold text-foreground transition-colors hover:bg-secondary"
+            >
+              <ClipboardList class="h-4 w-4" />
+              {{ t('navbar.guestOrders') }}
+            </router-link>
+          </div>
+        </div>
+
+        <div class="flex items-center justify-center md:justify-end" aria-hidden="true">
+          <img :src="brandLogo" alt="" class="h-32 w-32 object-contain sm:h-40 sm:w-40 md:h-56 md:w-56" />
+        </div>
+      </div>
+    </section>
+
     <section v-if="showHeroSection" class="relative z-10 border-b pt-24 pb-10">
       <div class="container mx-auto px-4">
         <div class="relative overflow-hidden rounded-2xl border bg-card"
@@ -260,23 +295,24 @@
       </div>
     </section>
 
-    <section id="featured" class="relative z-10 pb-14" :class="showHeroSection ? 'pt-14' : 'pt-32 md:pt-36'">
+    <section id="featured" class="relative z-10 pb-14" :class="showHeroSection ? 'pt-14' : 'pt-10 md:pt-12'">
       <div class="container mx-auto px-4">
-        <div class="mb-8 flex items-end justify-between gap-4">
+        <div class="mb-7 flex items-end justify-between gap-4">
           <div>
-            <h2 class="theme-section-heading text-3xl md:text-4xl">{{ t('home.featured.title') }}</h2>
+            <h2 class="theme-section-heading text-2xl md:text-3xl">{{ t('home.featured.title') }}</h2>
             <p class="mt-2 text-sm text-muted-foreground">{{ t('home.featured.description') }}</p>
           </div>
           <router-link
-                v-if="!hasHeroLink"
-                to="/products"
-            class="text-sm font-semibold text-muted-foreground transition-colors hover:text-foreground"
+            v-if="!hasHeroLink"
+            to="/products"
+            class="inline-flex min-h-10 items-center gap-2 rounded-md border bg-card px-4 py-2 text-sm font-semibold text-foreground transition-colors hover:bg-secondary"
           >
             {{ t('home.featured.viewAll') }}
+            <ArrowRight class="h-4 w-4" />
           </router-link>
         </div>
 
-        <div v-if="products.length > 0" class="grid grid-cols-2 gap-3 md:gap-4 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+        <div v-if="products.length > 0" class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           <ProductCard
             v-for="(product, idx) in products"
             :key="product.id"
@@ -294,7 +330,7 @@
       </div>
     </section>
 
-    <template v-if="latestSectionVisible">
+    <template v-if="latestSectionVisible && posts.length > 0">
     <hr class="theme-section-divider mx-4 md:mx-auto md:max-w-6xl" />
 
     <section class="relative z-10 py-12">
@@ -351,7 +387,7 @@
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { ArrowRight, ChevronLeft, ChevronRight, PackageOpen, Search, X } from 'lucide-vue-next'
+import { ArrowRight, ChevronLeft, ChevronRight, ClipboardList, PackageOpen, Search, ShoppingBag, X } from 'lucide-vue-next'
 import { postAPI, productAPI } from '../api'
 import { getImageUrl } from '../utils/image'
 import { useLocalized } from '../composables/useProduct'
@@ -382,6 +418,16 @@ const navBuiltin = computed(() => (appStore.config?.nav_config as { builtin?: Re
 const blogEnabled = computed(() => navBuiltin.value?.blog !== false)
 const noticeEnabled = computed(() => navBuiltin.value?.notice !== false)
 const latestSectionVisible = computed(() => blogEnabled.value || noticeEnabled.value)
+const brandSiteName = computed(() => String(appStore.config?.brand?.site_name || '').trim() || t('home.hero.title'))
+const brandDescription = computed(() => {
+  const description = getLocalizedText(appStore.config?.brand?.site_description)
+  return description || t('home.hero.subtitle')
+})
+const brandLogo = computed(() => {
+  const brand = appStore.config?.brand
+  const raw = String(brand?.site_logo || brand?.site_icon || '').trim()
+  return raw ? getImageUrl(raw) : '/mingyang-logo.png'
+})
 
 // ==================== Shared State ====================
 const products = ref<any[]>([])

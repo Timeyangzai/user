@@ -10,9 +10,9 @@
           v-if="brandLogo"
           :src="brandLogo"
           :alt="brandSiteName"
-          class="h-8 max-w-[180px] object-contain"
+          class="theme-wordmark-mark"
         />
-        <span v-else class="theme-wordmark-text">{{ brandSiteName }}</span>
+        <span class="theme-wordmark-text">{{ brandSiteName }}</span>
       </router-link>
 
       <!-- Desktop Menu -->
@@ -349,7 +349,7 @@ const brandSiteName = computed(() => {
 })
 
 const brandLogo = computed(() => {
-  const raw = String(appStore.config?.brand?.site_logo || '').trim()
+  const raw = String(appStore.config?.brand?.site_logo || appStore.config?.brand?.site_icon || '').trim()
   return raw ? getImageUrl(raw) : ''
 })
 

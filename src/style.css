@@ -279,25 +279,28 @@ html[data-telegram-mini-app="true"] body {
   }
 
   .theme-wordmark {
-    @apply inline-flex items-center rounded-xl border px-3.5 sm:px-4;
+    @apply inline-flex items-center gap-2.5;
     min-height: 2.5rem;
     max-width: min(56vw, 20rem);
-    background-color: color-mix(in oklab, var(--ui-bg-elevated) 90%, var(--ui-accent-soft) 10%);
-    border-color: color-mix(in oklab, var(--ui-accent) 22%, var(--ui-border));
-    box-shadow: var(--ui-shadow-1);
     color: var(--ui-text-primary);
-    transition: color 0.2s ease, border-color 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease;
+    transition: color 0.2s ease;
   }
 
   .theme-wordmark:hover {
     color: var(--ui-accent-hover);
-    border-color: color-mix(in oklab, var(--ui-accent) 42%, transparent);
-    background-color: color-mix(in oklab, var(--ui-accent-soft) 72%, var(--ui-bg-elevated));
   }
 
   .theme-wordmark:focus-visible {
     outline: none;
     box-shadow: 0 0 0 3px var(--ui-focus-ring);
+    border-radius: var(--ui-radius-sm);
+  }
+
+  .theme-wordmark-mark {
+    width: 2rem;
+    height: 2rem;
+    flex: none;
+    object-fit: contain;
   }
 
   .theme-wordmark-text {

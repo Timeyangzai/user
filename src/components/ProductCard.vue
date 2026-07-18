@@ -1,6 +1,6 @@
 <template>
   <Card
-    class="group relative overflow-hidden flex flex-col h-full rounded-2xl transition-all theme-slide-up"
+    class="group relative overflow-hidden flex flex-col h-full rounded-lg transition-all theme-slide-up"
     :class="isSoldOut(product)
       ? 'cursor-default opacity-85 grayscale-[0.25] saturate-50 border-destructive/30'
       : 'cursor-pointer hover:-translate-y-1 hover:border-primary/30 hover:shadow-lg'"
