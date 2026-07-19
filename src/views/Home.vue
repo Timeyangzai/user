@@ -163,7 +163,7 @@
 
     <!-- ==================== CARD MODE (default) ==================== -->
     <template v-else>
-    <section v-if="!showHeroSection" class="relative z-10 border-b bg-card pt-24">
+    <section v-if="!showHeroSection" class="aurora-shop-hero relative z-10 border-b bg-card pt-24">
       <div class="container mx-auto grid min-h-[300px] items-center gap-8 px-4 py-10 md:min-h-[340px] md:grid-cols-[minmax(0,1fr)_18rem] md:py-12 lg:grid-cols-[minmax(0,1fr)_22rem]">
         <div class="max-w-3xl">
           <div class="mb-5 inline-flex items-center gap-2 text-sm font-semibold text-primary">
@@ -198,7 +198,7 @@
       </div>
     </section>
 
-    <section v-if="showHeroSection" class="relative z-10 border-b pt-24 pb-10">
+    <section v-if="showHeroSection" class="aurora-banner-section relative z-10 border-b pt-24 pb-10">
       <div class="container mx-auto px-4">
         <div class="relative overflow-hidden rounded-2xl border bg-card"
           @touchstart="onBannerTouchStart"
@@ -295,7 +295,7 @@
       </div>
     </section>
 
-    <section id="featured" class="relative z-10 pb-14" :class="showHeroSection ? 'pt-14' : 'pt-10 md:pt-12'">
+    <section id="featured" class="aurora-featured relative z-10 pb-14" :class="showHeroSection ? 'pt-14' : 'pt-10 md:pt-12'">
       <div class="container mx-auto px-4">
         <div class="mb-7 flex items-end justify-between gap-4">
           <div>

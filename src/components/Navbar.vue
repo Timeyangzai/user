@@ -1,6 +1,6 @@
 <template>
   <nav
-    class="fixed top-0 left-0 right-0 z-50 bg-card/80 border-b backdrop-blur-md transition-all"
+    class="aurora-navbar fixed top-0 left-0 right-0 z-50 bg-card/80 border-b backdrop-blur-md transition-all"
     :class="scrolled ? 'py-2 shadow-lg' : 'py-4'"
     :style="{ transitionDuration: 'var(--ui-duration-normal)' }">
     <div class="container mx-auto px-4 flex items-center justify-between gap-4">

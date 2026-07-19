@@ -1,0 +1,258 @@
+/*
+ * Mingyang Aurora Grid storefront layer.
+ * Kept separate from upstream styles so upstream/main can continue to merge cleanly.
+ */
+
+:root {
+  --aurora-ink: #09182e;
+  --aurora-ink-soft: #244666;
+  --aurora-muted: #60718a;
+  --aurora-ice: #f8fbff;
+  --aurora-surface: rgba(255, 255, 255, 0.82);
+  --aurora-blue: #135dff;
+  --aurora-blue-deep: #0647df;
+  --aurora-cyan: #16d6e7;
+  --aurora-success: #14cba5;
+  --aurora-line: rgba(75, 124, 178, 0.16);
+  --aurora-grid: rgba(54, 120, 190, 0.065);
+  --aurora-gradient: linear-gradient(115deg, #0647df, #1685fa 64%, #12bfda);
+  --aurora-shadow: 0 24px 70px rgba(24, 93, 170, 0.13);
+
+  --ui-bg-page: var(--aurora-ice);
+  --ui-bg-elevated: rgba(255, 255, 255, 0.9);
+  --ui-bg-soft: #edf6ff;
+  --ui-bg-muted: #e3effc;
+  --ui-bg-overlay: rgba(255, 255, 255, 0.84);
+  --ui-bg-overlay-strong: rgba(255, 255, 255, 0.94);
+  --ui-text-primary: var(--aurora-ink);
+  --ui-text-secondary: var(--aurora-ink-soft);
+  --ui-text-muted: var(--aurora-muted);
+  --ui-border: var(--aurora-line);
+  --ui-border-strong: rgba(75, 124, 178, 0.28);
+  --ui-accent: var(--aurora-blue);
+  --ui-accent-hover: var(--aurora-blue-deep);
+  --ui-accent-soft: rgba(19, 93, 255, 0.11);
+  --ui-success: var(--aurora-success);
+  --ui-success-soft: rgba(20, 203, 165, 0.13);
+  --ui-info: #1685fa;
+  --ui-info-soft: rgba(22, 133, 250, 0.13);
+  --ui-focus-ring: rgba(19, 93, 255, 0.23);
+  --ui-radius-sm: 0.625rem;
+  --ui-radius-md: 1rem;
+  --ui-radius-lg: 1.5rem;
+  --ui-radius-xl: 2rem;
+  --ui-shadow-1: 0 12px 30px -24px rgba(24, 93, 170, 0.28);
+  --ui-shadow-2: 0 20px 52px -30px rgba(24, 93, 170, 0.34);
+  --ui-shadow-3: var(--aurora-shadow);
+  --ui-shadow-soft: var(--ui-shadow-1);
+  --ui-shadow-card: var(--ui-shadow-2);
+}
+
+.dark {
+  --aurora-ink: #edf7ff;
+  --aurora-ink-soft: #c3d8ea;
+  --aurora-muted: #92aac2;
+  --aurora-ice: #06101f;
+  --aurora-surface: rgba(9, 24, 46, 0.88);
+  --aurora-line: rgba(126, 189, 255, 0.16);
+  --aurora-grid: rgba(126, 189, 255, 0.045);
+  --aurora-shadow: 0 28px 78px rgba(0, 5, 18, 0.55);
+
+  --ui-bg-page: #06101f;
+  --ui-bg-elevated: rgba(9, 24, 46, 0.92);
+  --ui-bg-soft: #0c203b;
+  --ui-bg-muted: #102a48;
+  --ui-bg-overlay: rgba(9, 24, 46, 0.86);
+  --ui-bg-overlay-strong: rgba(9, 24, 46, 0.96);
+  --ui-text-primary: #edf7ff;
+  --ui-text-secondary: #c3d8ea;
+  --ui-text-muted: #92aac2;
+  --ui-border: rgba(126, 189, 255, 0.16);
+  --ui-border-strong: rgba(126, 189, 255, 0.3);
+  --ui-accent: #4d8dff;
+  --ui-accent-hover: #6ca2ff;
+  --ui-accent-soft: rgba(77, 141, 255, 0.18);
+  --ui-success: #2bdeb7;
+  --ui-success-soft: rgba(43, 222, 183, 0.17);
+  --ui-info: #40cce8;
+  --ui-info-soft: rgba(64, 204, 232, 0.16);
+  --ui-focus-ring: rgba(77, 141, 255, 0.34);
+  --ui-shadow-1: 0 18px 38px -26px rgba(0, 0, 0, 0.72);
+  --ui-shadow-2: 0 28px 64px -34px rgba(0, 0, 0, 0.82);
+  --ui-shadow-3: var(--aurora-shadow);
+}
+
+html,
+body {
+  background: var(--aurora-ice);
+}
+
+body {
+  font-family: Inter, "SF Pro Display", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+}
+
+.aurora-app {
+  position: relative;
+  isolation: isolate;
+  background:
+    linear-gradient(var(--aurora-grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--aurora-grid) 1px, transparent 1px),
+    radial-gradient(circle at 18% 5%, rgba(32, 224, 220, 0.13), transparent 31%),
+    radial-gradient(circle at 86% 8%, rgba(55, 117, 255, 0.15), transparent 32%),
+    var(--aurora-ice) !important;
+  background-size: 40px 40px, 40px 40px, auto, auto, auto !important;
+}
+
+.aurora-app .home-page {
+  background: transparent !important;
+}
+
+.aurora-navbar {
+  border-color: var(--aurora-line) !important;
+  background: color-mix(in srgb, var(--ui-bg-elevated) 82%, transparent) !important;
+  box-shadow: 0 12px 34px -30px rgba(24, 93, 170, 0.5);
+}
+
+.aurora-navbar .theme-wordmark-mark {
+  filter: drop-shadow(0 8px 12px rgba(19, 93, 255, 0.18));
+}
+
+.aurora-navbar a,
+.aurora-navbar button {
+  transition: color 180ms ease, background-color 180ms ease, border-color 180ms ease, transform 180ms ease;
+}
+
+.aurora-shop-hero {
+  overflow: hidden;
+  border-color: var(--aurora-line) !important;
+  background:
+    radial-gradient(circle at 82% 42%, rgba(22, 214, 231, 0.14), transparent 18rem),
+    radial-gradient(circle at 90% 16%, rgba(19, 93, 255, 0.14), transparent 24rem),
+    linear-gradient(120deg, rgba(255, 255, 255, 0.88), rgba(237, 246, 255, 0.72)) !important;
+}
+
+.dark .aurora-shop-hero {
+  background:
+    radial-gradient(circle at 82% 42%, rgba(22, 214, 231, 0.12), transparent 18rem),
+    radial-gradient(circle at 90% 16%, rgba(19, 93, 255, 0.2), transparent 24rem),
+    linear-gradient(120deg, rgba(9, 24, 46, 0.94), rgba(6, 16, 31, 0.9)) !important;
+}
+
+.aurora-shop-hero h1 {
+  color: var(--aurora-ink);
+  font-weight: 760;
+  letter-spacing: -0.045em;
+}
+
+.aurora-shop-hero p {
+  color: var(--aurora-muted);
+  max-width: 42rem;
+}
+
+.aurora-shop-hero img {
+  filter: drop-shadow(0 24px 34px rgba(19, 93, 255, 0.2));
+}
+
+.aurora-shop-hero a.bg-primary,
+.aurora-shop-hero a[class*="bg-primary"] {
+  border: 0;
+  background: var(--aurora-gradient) !important;
+  box-shadow: 0 14px 30px -16px rgba(19, 93, 255, 0.62);
+}
+
+.aurora-shop-hero a:hover {
+  transform: translateY(-1px);
+}
+
+.aurora-banner-section > .container > div {
+  border-color: var(--aurora-line);
+  box-shadow: var(--aurora-shadow);
+}
+
+.aurora-featured {
+  background: linear-gradient(180deg, rgba(248, 251, 255, 0.5), rgba(237, 246, 255, 0.7));
+}
+
+.dark .aurora-featured {
+  background: linear-gradient(180deg, rgba(6, 16, 31, 0.35), rgba(12, 32, 59, 0.45));
+}
+
+.aurora-product-card {
+  border-color: var(--aurora-line) !important;
+  background: var(--aurora-surface) !important;
+  box-shadow: 0 18px 48px -36px rgba(24, 93, 170, 0.4) !important;
+  backdrop-filter: blur(16px);
+}
+
+.aurora-product-card:hover {
+  border-color: rgba(19, 93, 255, 0.32) !important;
+  box-shadow: var(--aurora-shadow) !important;
+  transform: translateY(-2px) !important;
+}
+
+.aurora-product-card img {
+  transition-duration: 340ms !important;
+}
+
+.aurora-product-card:hover img {
+  transform: scale(1.015) !important;
+}
+
+.aurora-product-card .theme-price-sm {
+  color: var(--aurora-ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.aurora-footer {
+  border-color: var(--aurora-line) !important;
+  background:
+    radial-gradient(circle at 15% 0%, rgba(22, 214, 231, 0.09), transparent 24rem),
+    color-mix(in srgb, var(--ui-bg-elevated) 92%, transparent) !important;
+}
+
+.aurora-mobile-nav {
+  border-color: var(--aurora-line) !important;
+  background: color-mix(in srgb, var(--ui-bg-elevated) 90%, transparent) !important;
+  box-shadow: 0 -16px 40px -30px rgba(24, 93, 170, 0.5);
+}
+
+.aurora-app :where(button, a, input, select, textarea):focus-visible {
+  outline: 2px solid var(--aurora-blue);
+  outline-offset: 2px;
+}
+
+.aurora-app :where(input, select, textarea) {
+  border-color: var(--aurora-line);
+  background: color-mix(in srgb, var(--ui-bg-elevated) 94%, transparent);
+}
+
+.aurora-app :where(input, select, textarea):focus {
+  border-color: rgba(19, 93, 255, 0.48);
+  box-shadow: 0 0 0 3px var(--ui-focus-ring);
+}
+
+@media (max-width: 767px) {
+  .aurora-app {
+    background-size: 32px 32px, 32px 32px, auto, auto, auto !important;
+  }
+
+  .aurora-shop-hero > .container {
+    padding-top: 1.5rem;
+    padding-bottom: 2.5rem;
+  }
+
+  .aurora-product-card:hover {
+    transform: none !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .aurora-app *,
+  .aurora-app *::before,
+  .aurora-app *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

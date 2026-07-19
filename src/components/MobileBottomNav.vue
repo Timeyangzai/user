@@ -1,5 +1,5 @@
 <template>
-  <nav class="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-card/90 backdrop-blur-xl border-t theme-safe-bottom">
+  <nav class="aurora-mobile-nav lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-card/90 backdrop-blur-xl border-t theme-safe-bottom">
     <div class="flex items-stretch h-14">
       <router-link
         v-for="item in navItems"

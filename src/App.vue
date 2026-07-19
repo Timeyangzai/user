@@ -1,5 +1,5 @@
 <template>
-  <div id="app" class="min-h-screen bg-background text-foreground flex flex-col">
+  <div id="app" class="aurora-app min-h-screen bg-background text-foreground flex flex-col">
     <!-- vault 模板：自带顶栏/页脚的外壳包裹页面（控制台仍走下方分支） -->
     <VaultLayout v-if="isVault && !isResellerConsole">
       <ErrorBoundary>

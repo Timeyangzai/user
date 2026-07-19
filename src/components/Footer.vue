@@ -1,6 +1,6 @@
 <template>
   <footer
-    class="relative bg-card/90 text-muted-foreground border-t overflow-hidden">
+    class="aurora-footer relative bg-card/90 text-muted-foreground border-t overflow-hidden">
     <div class="container mx-auto px-4 py-16 relative">
       <div class="grid grid-cols-2 md:grid-cols-4 gap-8 md:gap-12 mb-16">
         <!-- Brand -->
